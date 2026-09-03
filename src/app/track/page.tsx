@@ -51,7 +51,7 @@ function TrackContent() {
         
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-10">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 mb-3">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 mb-3">
             <Truck className="h-6 w-6" />
           </div>
           <h1 className="text-3xl font-black text-stone-900">Track Your Custom Keepsake</h1>
@@ -74,14 +74,14 @@ function TrackContent() {
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
                 placeholder="Enter Tracking ID (e.g. TRK... or EBZ-...)"
-                className="w-full rounded-2xl border border-stone-300 bg-white py-3.5 pl-11 pr-4 text-xs font-bold uppercase tracking-wider text-stone-900 placeholder-stone-400 focus:border-violet-600 focus:outline-none shadow-sm"
+                className="w-full rounded-2xl border border-stone-300 bg-white py-3.5 pl-11 pr-4 text-xs font-bold uppercase tracking-wider text-stone-900 placeholder-stone-400 focus:border-primary-600 focus:outline-none shadow-sm"
               />
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-2xl bg-violet-700 px-6 py-3.5 text-xs font-extrabold text-white shadow-md hover:bg-violet-800 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+              className="rounded-2xl bg-primary-500 px-6 py-3.5 text-xs font-extrabold text-white shadow-md hover:bg-primary-600 transition-colors disabled:opacity-60 flex items-center gap-1.5"
             >
               {loading ? (
                 <>
@@ -110,21 +110,21 @@ function TrackContent() {
             <div className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-violet-700">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary-600">
                     Order {order.order_number}
                   </span>
                   <h2 className="text-xl font-black text-stone-900 mt-0.5">
-                    Status: <span className="text-violet-700 capitalize">{order.order_status}</span>
+                    Status: <span className="text-primary-600 capitalize">{order.order_status}</span>
                   </h2>
                   <p className="text-xs text-stone-500 mt-1">
                     Courier Partner: <strong>{order.courier_name}</strong> • Waybill: <strong>{order.tracking_number}</strong>
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-violet-50 p-4 border border-violet-100 text-right">
+                <div className="rounded-2xl bg-primary-50 p-4 border border-primary-100 text-right">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block">Total Amount</span>
-                  <span className="text-lg font-black text-violet-950">₹{order.total_amount}</span>
-                  <span className="text-[10px] text-emerald-700 font-bold block uppercase mt-0.5">
+                  <span className="text-lg font-black text-primary-700">₹{order.total_amount}</span>
+                  <span className="text-[10px] text-primary-700 font-bold block uppercase mt-0.5">
                     {order.payment_status} via {order.payment_method.toUpperCase()}
                   </span>
                 </div>
@@ -141,7 +141,7 @@ function TrackContent() {
                     <div key={idx} className="relative">
                       {/* Step Node */}
                       <span className={`absolute -left-6 top-0.5 flex h-5 w-5 items-center justify-center rounded-full ring-4 ring-white ${
-                        step.done ? 'bg-violet-700 text-white' : 'bg-stone-300 text-stone-500'
+                        step.done ? 'bg-primary-500 text-white' : 'bg-stone-300 text-stone-500'
                       }`}>
                         {step.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3 w-3" />}
                       </span>
@@ -179,7 +179,7 @@ function TrackContent() {
                         <h4 className="text-xs font-bold text-stone-900">{item.product_title}</h4>
                         <p className="text-[11px] text-stone-500">Shape: <strong>{item.shape_selected}</strong></p>
                         {item.custom_text && (
-                          <p className="text-[10px] text-violet-700 italic font-medium">&ldquo;{item.custom_text}&rdquo;</p>
+                          <p className="text-[10px] text-primary-600 italic font-medium">&ldquo;{item.custom_text}&rdquo;</p>
                         )}
                       </div>
                     </div>
@@ -196,7 +196,7 @@ function TrackContent() {
             {/* Shipping Destination */}
             <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-stone-900 mb-2 flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-violet-700" /> Delivery Address
+                <MapPin className="h-4 w-4 text-primary-600" /> Delivery Address
               </h3>
               <p className="text-xs font-bold text-stone-800">{order.customer_name}</p>
               <p className="text-xs text-stone-600 mt-0.5">{order.shipping_address}, {order.city}, {order.state} - {order.pincode}</p>

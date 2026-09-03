@@ -16,7 +16,7 @@ export default function FeaturedCategories({ categories }: Props) {
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-700 mb-2">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary-600 mb-2">
               <span>Bespoke Collections</span>
             </div>
             <h2 className="text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
@@ -28,7 +28,7 @@ export default function FeaturedCategories({ categories }: Props) {
           </div>
           <Link
             href="/shop"
-            className="group mt-4 sm:mt-0 inline-flex items-center gap-1.5 text-sm font-bold text-violet-800 hover:text-violet-600 transition-colors"
+            className="group mt-4 sm:mt-0 inline-flex items-center gap-1.5 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors"
           >
             <span>View Full Catalog</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -41,7 +41,7 @@ export default function FeaturedCategories({ categories }: Props) {
             <Link
               key={cat.id}
               href={`/shop?category=${cat.slug}`}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-sm hover:shadow-xl hover:border-violet-300 transition-all duration-300 hover:-translate-y-1"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-sm hover:shadow-xl hover:border-primary-300 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-stone-100 mb-3">
                 <img
@@ -51,20 +51,20 @@ export default function FeaturedCategories({ categories }: Props) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-950/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity" />
                 {cat.product_count !== undefined && cat.product_count > 0 && (
-                  <span className="absolute top-2.5 right-2.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-extrabold text-violet-900 shadow backdrop-blur-sm">
+                  <span className="absolute top-2.5 right-2.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-extrabold text-primary-700 shadow backdrop-blur-sm">
                     {cat.product_count} Items
                   </span>
                 )}
               </div>
 
               <div className="flex-1 flex flex-col justify-between">
-                <h3 className="text-sm font-bold text-stone-900 group-hover:text-violet-700 transition-colors">
+                <h3 className="text-sm font-bold text-stone-900 group-hover:text-primary-600 transition-colors">
                   {cat.name}
                 </h3>
                 <p className="mt-1 text-[11px] text-stone-500 line-clamp-2 leading-relaxed">
                   {cat.description}
                 </p>
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-stone-100 text-[11px] font-semibold text-violet-700">
+                <div className="mt-3 flex items-center justify-between pt-2 border-t border-stone-100 text-[11px] font-semibold text-primary-600">
                   <span>Customize Now</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>

@@ -54,7 +54,7 @@ function ShopContent() {
         
         {/* Top Header */}
         <div className="mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-violet-700">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
             Artisanal Keepsakes
           </span>
           <h1 className="mt-1 text-3xl font-black text-stone-900 sm:text-4xl">
@@ -76,7 +76,7 @@ function ShopContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filter by keyword..."
-              className="w-full rounded-full border border-stone-200 bg-stone-50 py-2 pl-10 pr-4 text-xs text-stone-900 focus:border-violet-600 focus:bg-white focus:outline-none"
+              className="w-full rounded-full border border-stone-200 bg-stone-50 py-2 pl-10 pr-4 text-xs text-stone-900 focus:border-primary-600 focus:bg-white focus:outline-none"
             />
             <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
           </div>
@@ -90,7 +90,7 @@ function ShopContent() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-violet-600"
+              className="rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-primary-600"
             >
               <option value="featured">Featured First</option>
               <option value="price-low">Price: Low to High</option>
@@ -105,12 +105,12 @@ function ShopContent() {
           <aside className="lg:col-span-3 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                <Filter className="h-3.5 w-3.5 text-violet-700" /> Categories
+                <Filter className="h-3.5 w-3.5 text-primary-600" /> Categories
               </span>
               {selectedCategory && (
                 <button
                   onClick={() => setSelectedCategory('')}
-                  className="text-[11px] font-bold text-violet-700 hover:underline"
+                  className="text-[11px] font-bold text-primary-600 hover:underline"
                 >
                   Clear
                 </button>
@@ -122,7 +122,7 @@ function ShopContent() {
                 onClick={() => setSelectedCategory('')}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 font-semibold transition-colors ${
                   !selectedCategory
-                    ? 'bg-violet-700 text-white shadow-sm'
+                    ? 'bg-primary-500 text-white shadow-sm'
                     : 'text-stone-700 hover:bg-stone-100'
                 }`}
               >
@@ -136,7 +136,7 @@ function ShopContent() {
                   onClick={() => setSelectedCategory(cat.slug)}
                   className={`flex items-center justify-between rounded-xl px-3 py-2 font-semibold transition-colors text-left ${
                     selectedCategory === cat.slug
-                      ? 'bg-violet-700 text-white shadow-sm'
+                      ? 'bg-primary-500 text-white shadow-sm'
                       : 'text-stone-700 hover:bg-stone-100'
                   }`}
                 >
@@ -148,8 +148,8 @@ function ShopContent() {
 
             {/* Quality badge card in sidebar */}
             <div className="pt-4 border-t border-stone-100">
-              <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 p-4 border border-violet-100 text-center">
-                <Sparkles className="h-6 w-6 text-violet-600 mx-auto mb-1.5" />
+              <div className="rounded-2xl bg-gradient-to-br from-primary-50 to-secondary-50 p-4 border border-primary-100 text-center">
+                <Sparkles className="h-6 w-6 text-primary-600 mx-auto mb-1.5" />
                 <h4 className="text-xs font-bold text-stone-900">Custom Shapes & Cuts</h4>
                 <p className="mt-1 text-[10px] text-stone-500">
                   Every product is customized with Japanese UV ink and laser contouring.
@@ -162,7 +162,7 @@ function ShopContent() {
           <main className="lg:col-span-9">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <RefreshCw className="h-8 w-8 text-violet-600 animate-spin mb-3" />
+                <RefreshCw className="h-8 w-8 text-primary-600 animate-spin mb-3" />
                 <p className="text-xs font-semibold text-stone-500">Loading personalized items...</p>
               </div>
             ) : products.length === 0 ? (
@@ -176,7 +176,7 @@ function ShopContent() {
                     setSelectedCategory('');
                     setSearchQuery('');
                   }}
-                  className="mt-4 rounded-full bg-violet-700 px-5 py-2 text-xs font-bold text-white hover:bg-violet-800"
+                  className="mt-4 rounded-full bg-primary-500 px-5 py-2 text-xs font-bold text-white hover:bg-primary-600"
                 >
                   Reset Filters
                 </button>

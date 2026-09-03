@@ -121,7 +121,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-stone-500 font-medium">Tracking Number:</span>
-              <span className="font-extrabold text-violet-700">{placedOrder.tracking_number}</span>
+              <span className="font-extrabold text-primary-700">{placedOrder.tracking_number}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-stone-500 font-medium">Total Paid:</span>
@@ -129,14 +129,14 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between border-t border-stone-200 pt-2">
               <span className="text-stone-500 font-medium">Estimated Delivery:</span>
-              <span className="font-bold text-emerald-700">{placedOrder.estimated_delivery}</span>
+              <span className="font-bold text-primary-700">{placedOrder.estimated_delivery}</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
             <Link
               href={`/track?number=${placedOrder.tracking_number}`}
-              className="flex items-center justify-center gap-2 rounded-xl bg-violet-700 py-3 text-xs font-bold text-white hover:bg-violet-800 transition-colors shadow"
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary-500 py-3 text-xs font-bold text-white hover:bg-primary-600 transition-colors shadow"
             >
               <Truck className="h-4 w-4" />
               <span>Track Order Live Timeline</span>
@@ -161,7 +161,7 @@ export default function CheckoutPage() {
         <p className="mt-1 text-xs text-stone-500">Please add personalized items to your bag before checking out.</p>
         <Link
           href="/shop"
-          className="mt-6 rounded-full bg-violet-700 px-6 py-2.5 text-xs font-bold text-white hover:bg-violet-800"
+          className="mt-6 rounded-full bg-primary-500 px-6 py-2.5 text-xs font-bold text-white hover:bg-primary-600"
         >
           Explore Catalog
         </Link>
@@ -207,7 +207,7 @@ export default function CheckoutPage() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="e.g. Rahul Sharma"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
 
@@ -219,7 +219,7 @@ export default function CheckoutPage() {
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
               </div>
@@ -231,7 +231,7 @@ export default function CheckoutPage() {
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                   placeholder="rahul@example.com"
-                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
               </div>
             </div>
@@ -250,7 +250,7 @@ export default function CheckoutPage() {
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
                   placeholder="House No, Apartment name, Street, Landmark"
-                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
               </div>
 
@@ -264,7 +264,7 @@ export default function CheckoutPage() {
                     value={pincode}
                     onChange={handlePincodeChange}
                     placeholder="e.g. 400001"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs font-bold text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs font-bold text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
 
@@ -276,7 +276,7 @@ export default function CheckoutPage() {
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="City"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
 
@@ -288,7 +288,7 @@ export default function CheckoutPage() {
                     value={state}
                     onChange={(e) => setState(e.target.value)}
                     placeholder="State"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
               </div>
@@ -300,7 +300,7 @@ export default function CheckoutPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Special laser engraving requests, delivery instructions"
-                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                  className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
               </div>
             </div>
@@ -313,7 +313,7 @@ export default function CheckoutPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-all ${
-                  paymentMethod === 'upi' ? 'border-violet-600 bg-violet-50/50 ring-1 ring-violet-600' : 'border-stone-200 hover:bg-stone-50'
+                  paymentMethod === 'upi' ? 'border-primary-600 bg-primary-50/50 ring-1 ring-primary-600' : 'border-stone-200 hover:bg-stone-50'
                 }`}>
                   <input
                     type="radio"
@@ -323,7 +323,7 @@ export default function CheckoutPage() {
                     onChange={() => setPaymentMethod('upi')}
                     className="sr-only"
                   />
-                  <QrCode className="h-5 w-5 text-violet-700" />
+                  <QrCode className="h-5 w-5 text-primary-600" />
                   <div>
                     <span className="text-xs font-bold text-stone-900 block">Instant UPI</span>
                     <span className="text-[10px] text-stone-500">GPay, PhonePe, Paytm</span>
@@ -331,7 +331,7 @@ export default function CheckoutPage() {
                 </label>
 
                 <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-all ${
-                  paymentMethod === 'card' ? 'border-violet-600 bg-violet-50/50 ring-1 ring-violet-600' : 'border-stone-200 hover:bg-stone-50'
+                  paymentMethod === 'card' ? 'border-primary-600 bg-primary-50/50 ring-1 ring-primary-600' : 'border-stone-200 hover:bg-stone-50'
                 }`}>
                   <input
                     type="radio"
@@ -341,7 +341,7 @@ export default function CheckoutPage() {
                     onChange={() => setPaymentMethod('card')}
                     className="sr-only"
                   />
-                  <CreditCard className="h-5 w-5 text-violet-700" />
+                  <CreditCard className="h-5 w-5 text-primary-600" />
                   <div>
                     <span className="text-xs font-bold text-stone-900 block">Card / NetBanking</span>
                     <span className="text-[10px] text-stone-500">RuPay, Visa, MC</span>
@@ -349,7 +349,7 @@ export default function CheckoutPage() {
                 </label>
 
                 <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-all ${
-                  paymentMethod === 'cod' ? 'border-violet-600 bg-violet-50/50 ring-1 ring-violet-600' : 'border-stone-200 hover:bg-stone-50'
+                  paymentMethod === 'cod' ? 'border-primary-600 bg-primary-50/50 ring-1 ring-primary-600' : 'border-stone-200 hover:bg-stone-50'
                 }`}>
                   <input
                     type="radio"
@@ -359,7 +359,7 @@ export default function CheckoutPage() {
                     onChange={() => setPaymentMethod('cod')}
                     className="sr-only"
                   />
-                  <Banknote className="h-5 w-5 text-violet-700" />
+                  <Banknote className="h-5 w-5 text-primary-600" />
                   <div>
                     <span className="text-xs font-bold text-stone-900 block">Cash On Delivery</span>
                     <span className="text-[10px] text-stone-500">Pay at doorstep</span>
@@ -388,7 +388,7 @@ export default function CheckoutPage() {
                     <h4 className="font-bold text-stone-900 truncate">{item.title}</h4>
                     <p className="text-stone-500 text-[11px]">Shape: {item.shape}</p>
                     {item.customPhotoUrl && (
-                      <span className="text-[10px] font-bold text-violet-700">✓ Custom Photo Fused</span>
+                      <span className="text-[10px] font-bold text-primary-600">✓ Custom Photo Fused</span>
                     )}
                     <div className="mt-1 flex justify-between font-semibold">
                       <span className="text-stone-500">{item.quantity} x ₹{item.price}</span>
@@ -407,18 +407,18 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between text-stone-600">
                 <span>Pan-India Delivery</span>
-                <span>{shippingFee === 0 ? <strong className="text-emerald-600">FREE</strong> : `₹${shippingFee}`}</span>
+                <span>{shippingFee === 0 ? <strong className="text-primary-600">FREE</strong> : `₹${shippingFee}`}</span>
               </div>
               <div className="flex justify-between border-t border-stone-200 pt-3 text-base font-black text-stone-900">
                 <span>Total Due</span>
-                <span className="text-violet-900">₹{(subtotal + shippingFee).toFixed(2)}</span>
+                <span className="text-primary-700">₹{(subtotal + shippingFee).toFixed(2)}</span>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-800 py-4 text-sm font-black text-white shadow-xl shadow-violet-600/30 hover:brightness-105 transition-all disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary-500 py-4 text-sm font-black text-white shadow-xl shadow-primary-950/20 hover:bg-primary-600 transition-all disabled:opacity-60"
             >
               {isSubmitting ? (
                 <>
@@ -427,7 +427,7 @@ export default function CheckoutPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <Sparkles className="h-4 w-4 text-primary-200" />
                   <span>Place Order (₹{(subtotal + shippingFee).toFixed(2)})</span>
                 </>
               )}

@@ -23,11 +23,12 @@ export default function Footer() {
           
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-4 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 text-white shadow-md">
-                <Sparkles className="h-4 w-4 text-amber-300" />
-              </div>
-              <span className="text-2xl font-black tracking-tight text-white">EBANZO</span>
+            <Link href="/" className="flex items-center py-1">
+              <img 
+                src="/logo.png" 
+                alt="Ebanzo" 
+                className="h-8 w-auto max-w-[160px] object-contain brightness-0 invert" 
+              />
             </Link>
             <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
               India’s premier destination for high-quality personalized gifting and premium acrylic decor. From custom car accessories to elegant tabletop keepsakes, we deliver excellence directly to your doorstep.
@@ -49,13 +50,13 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Collections</h4>
             <ul className="space-y-2 text-xs text-stone-400">
-              <li><Link href="/shop?category=fridge-magnet" className="hover:text-violet-400 transition-colors">Fridge Magnets</Link></li>
-              <li><Link href="/shop?category=key-chains" className="hover:text-violet-400 transition-colors">Custom Keychains</Link></li>
-              <li><Link href="/shop?category=car-hanging" className="hover:text-violet-400 transition-colors">Car Hangings</Link></li>
-              <li><Link href="/shop?category=car-stand" className="hover:text-violet-400 transition-colors">Dashboard Stands</Link></li>
-              <li><Link href="/shop?category=mini-gallary" className="hover:text-violet-400 transition-colors">Mini Galleries</Link></li>
-              <li><Link href="/shop?category=photostand" className="hover:text-violet-400 transition-colors">Acrylic Photostands</Link></li>
-              <li><Link href="/shop?category=wallet-card" className="hover:text-violet-400 transition-colors">Engraved Wallet Cards</Link></li>
+              <li><Link href="/shop?category=fridge-magnet" className="hover:text-primary-400 transition-colors">Fridge Magnets</Link></li>
+              <li><Link href="/shop?category=key-chains" className="hover:text-primary-400 transition-colors">Custom Keychains</Link></li>
+              <li><Link href="/shop?category=car-hanging" className="hover:text-primary-400 transition-colors">Car Hangings</Link></li>
+              <li><Link href="/shop?category=car-stand" className="hover:text-primary-400 transition-colors">Dashboard Stands</Link></li>
+              <li><Link href="/shop?category=mini-gallary" className="hover:text-primary-400 transition-colors">Mini Galleries</Link></li>
+              <li><Link href="/shop?category=photostand" className="hover:text-primary-400 transition-colors">Acrylic Photostands</Link></li>
+              <li><Link href="/shop?category=wallet-card" className="hover:text-primary-400 transition-colors">Engraved Wallet Cards</Link></li>
             </ul>
           </div>
 
@@ -63,10 +64,10 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Quick Links</h4>
             <ul className="space-y-2 text-xs text-stone-400">
-              <li><Link href="/track" className="hover:text-violet-400 transition-colors">Track Order Status</Link></li>
-              <li><Link href="/contact" className="hover:text-violet-400 transition-colors">Contact Support</Link></li>
-              <li><Link href="/contact" className="hover:text-violet-400 transition-colors">Bulk / Corporate Orders</Link></li>
-              <li><Link href="/shop" className="hover:text-violet-400 transition-colors">All Best Sellers</Link></li>
+              <li><Link href="/track" className="hover:text-primary-400 transition-colors">Track Order Status</Link></li>
+              <li><Link href="/contact" className="hover:text-primary-400 transition-colors">Contact Support</Link></li>
+              <li><Link href="/contact" className="hover:text-primary-400 transition-colors">Bulk / Corporate Orders</Link></li>
+              <li><Link href="/shop" className="hover:text-primary-400 transition-colors">All Best Sellers</Link></li>
               <li><span className="text-stone-500 cursor-not-allowed">Shipping & Returns</span></li>
               <li><span className="text-stone-500 cursor-not-allowed">Privacy Policy</span></li>
             </ul>
@@ -86,11 +87,11 @@ export default function Footer() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="flex-1 rounded-xl border border-stone-800 bg-stone-900 px-3.5 py-2.5 text-xs text-white placeholder-stone-500 focus:border-violet-500 focus:outline-none"
+                className="flex-1 rounded-xl border border-stone-800 bg-stone-900 px-3.5 py-2.5 text-xs text-white placeholder-stone-500 focus:border-primary-500 focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-violet-600 transition-colors flex items-center gap-1.5"
+                className="rounded-xl bg-primary-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-600 transition-colors flex items-center gap-1.5"
               >
                 <span>Join</span>
                 <Send className="h-3 w-3" />
@@ -98,7 +99,7 @@ export default function Footer() {
             </form>
 
             {subscribed && (
-              <p className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+              <p className="text-xs text-primary-300 font-medium flex items-center gap-1">
                 <Check className="h-3.5 w-3.5" /> Welcome! Use coupon <strong>EBANZO10</strong> for 10% off.
               </p>
             )}

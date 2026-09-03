@@ -78,7 +78,7 @@ export async function fetchCategories(): Promise<Category[]> {
     const data = await res.json();
     return data.data || [];
   } catch (err) {
-    console.error('Error fetching categories:', err);
+    console.warn('Categories API fetch notice:', err);
     return [];
   }
 }
@@ -96,7 +96,7 @@ export async function fetchProducts(params?: { category?: string; search?: strin
     const data = await res.json();
     return data.data || [];
   } catch (err) {
-    console.error('Error fetching products:', err);
+    console.warn('Products API fetch notice:', err);
     return [];
   }
 }
@@ -108,7 +108,7 @@ export async function fetchProduct(slug: string): Promise<Product | null> {
     const data = await res.json();
     return data.data || null;
   } catch (err) {
-    console.error('Error fetching product:', err);
+    console.warn('Product detail API fetch notice:', err);
     return null;
   }
 }
@@ -126,7 +126,7 @@ export async function uploadCustomPhoto(file: File): Promise<{ url: string; file
     const data = await res.json();
     return data.data || null;
   } catch (err) {
-    console.error('Upload error:', err);
+    console.warn('Upload API notice:', err);
     return null;
   }
 }

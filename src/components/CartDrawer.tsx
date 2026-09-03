@@ -45,9 +45,9 @@ export default function CartDrawer() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-stone-200 px-6 py-4">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-violet-700" />
+              <ShoppingBag className="h-5 w-5 text-primary-600" />
               <h2 className="text-lg font-bold text-stone-900">Your Shopping Bag</h2>
-              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">
+              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary-700">
                 {cart.length}
               </span>
             </div>
@@ -60,22 +60,22 @@ export default function CartDrawer() {
           </div>
 
           {/* Free Delivery Bar */}
-          <div className="border-b border-stone-100 bg-violet-50/50 px-6 py-3">
-            <div className="flex items-center justify-between text-xs font-medium text-violet-950 mb-1.5">
+          <div className="border-b border-stone-100 bg-primary-50/50 px-6 py-3">
+            <div className="flex items-center justify-between text-xs font-medium text-secondary-900 mb-1.5">
               <span>
                 {amountNeeded > 0 ? (
                   <>Add <strong>₹{amountNeeded.toFixed(0)}</strong> more for <strong>FREE Pan-India Delivery</strong>!</>
                 ) : (
-                  <span className="text-emerald-700 font-bold flex items-center gap-1">
+                  <span className="text-primary-700 font-bold flex items-center gap-1">
                     <Sparkles className="h-3.5 w-3.5" /> Congratulations! You unlocked Free Shipping!
                   </span>
                 )}
               </span>
               <span className="font-bold">{progressPercent.toFixed(0)}%</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-violet-200/70">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-primary-100">
               <div 
-                className="h-full rounded-full bg-gradient-to-r from-violet-600 to-amber-500 transition-all duration-500"
+                className="h-full rounded-full bg-primary-500 transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -95,7 +95,7 @@ export default function CartDrawer() {
                 <Link
                   href="/shop"
                   onClick={() => setIsCartOpen(false)}
-                  className="mt-6 rounded-full bg-violet-700 px-6 py-2.5 text-xs font-bold text-white shadow hover:bg-violet-800 transition-colors"
+                  className="mt-6 rounded-full bg-primary-500 px-6 py-2.5 text-xs font-bold text-white shadow hover:bg-primary-600 transition-colors"
                 >
                   Explore Collections
                 </Link>
@@ -111,7 +111,7 @@ export default function CartDrawer() {
                       className="h-full w-full object-cover"
                     />
                     {item.customPhotoUrl && (
-                      <span className="absolute bottom-1 right-1 rounded-md bg-violet-900/90 px-1 py-0.5 text-[9px] font-bold text-amber-300">
+                      <span className="absolute bottom-1 right-1 rounded-md bg-secondary-900/90 px-1 py-0.5 text-[9px] font-bold text-primary-200">
                         Custom
                       </span>
                     )}
@@ -150,7 +150,7 @@ export default function CartDrawer() {
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <span className="text-sm font-extrabold text-violet-900">
+                      <span className="text-sm font-extrabold text-primary-600">
                         ₹{item.price * item.quantity}
                       </span>
                     </div>
@@ -172,18 +172,18 @@ export default function CartDrawer() {
                       placeholder="Coupon Code (e.g. EBANZO10)"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
-                      className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-semibold uppercase text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                      className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-semibold uppercase text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-primary-600"
                     />
                     <Tag className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                   </div>
                   <button
                     onClick={applyCoupon}
-                    className="rounded-xl bg-stone-900 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700 transition-colors"
+                    className="rounded-xl bg-secondary-900 px-4 py-2 text-xs font-bold text-white hover:bg-primary-600 transition-colors"
                   >
                     Apply
                   </button>
                 </div>
-                {couponSuccess && <p className="mt-1 text-[11px] text-emerald-600 font-medium">{couponSuccess}</p>}
+                {couponSuccess && <p className="mt-1 text-[11px] text-primary-600 font-medium">{couponSuccess}</p>}
                 {couponError && <p className="mt-1 text-[11px] text-rose-500 font-medium">{couponError}</p>}
               </div>
 
@@ -194,25 +194,25 @@ export default function CartDrawer() {
                   <span className="font-semibold text-stone-900">₹{subtotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-medium">
+                  <div className="flex justify-between text-primary-600 font-medium">
                     <span>Discount ({discountPercent}%)</span>
                     <span>-₹{discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span>Shipping Fee</span>
-                  <span>{shippingFee === 0 ? <strong className="text-emerald-600">FREE</strong> : `₹${shippingFee}`}</span>
+                  <span>{shippingFee === 0 ? <strong className="text-primary-600">FREE</strong> : `₹${shippingFee}`}</span>
                 </div>
                 <div className="flex justify-between border-t border-stone-200 pt-2 text-sm font-extrabold text-stone-900">
                   <span>Total Amount</span>
-                  <span className="text-violet-900">₹{finalTotal.toFixed(2)}</span>
+                  <span className="text-primary-700">₹{finalTotal.toFixed(2)}</span>
                 </div>
               </div>
 
               <Link
                 href="/checkout"
                 onClick={() => setIsCartOpen(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-800 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-600/30 hover:brightness-105 transition-all"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-950/20 hover:bg-primary-600 transition-all"
               >
                 <span>Proceed to Checkout</span>
                 <ArrowRight className="h-4 w-4" />

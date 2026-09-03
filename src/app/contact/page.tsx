@@ -46,7 +46,7 @@ export default function ContactPage() {
         
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 text-xs font-bold text-violet-700 mb-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1 text-xs font-bold text-primary-700 mb-3">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Direct Studio Support</span>
           </div>
@@ -69,7 +69,7 @@ export default function ContactPage() {
 
               <div className="space-y-4 text-xs">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div>
@@ -81,7 +81,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
                     <Mail className="h-4 w-4" />
                   </div>
                   <div>
@@ -91,7 +91,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
                     <MessageCircle className="h-4 w-4" />
                   </div>
                   <div>
@@ -106,7 +106,7 @@ export default function ContactPage() {
                   href="https://wa.me/919876543210?text=Hi%20Ebanzo,%20I%20have%20an%20inquiry%20regarding%20bulk%20personalized%20gifting"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-secondary-900 py-3 text-xs font-bold text-white hover:bg-primary-600 transition-colors shadow"
                 >
                   <MessageCircle className="h-4 w-4" />
                   <span>Start WhatsApp Chat</span>
@@ -115,13 +115,13 @@ export default function ContactPage() {
             </div>
 
             {/* Corporate Gifting Perks Card */}
-            <div className="rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-900 to-purple-950 p-6 text-white shadow-md">
-              <div className="flex items-center gap-2 mb-2 text-amber-300 font-bold text-xs">
+            <div className="rounded-3xl border border-primary-200 bg-secondary-900 p-6 text-white shadow-md">
+              <div className="flex items-center gap-2 mb-2 text-primary-300 font-bold text-xs">
                 <Building2 className="h-4 w-4" />
                 <span>Corporate & Event Gifting</span>
               </div>
               <h3 className="text-base font-extrabold text-white">Bulk Orders over 50+ Units?</h3>
-              <p className="mt-1 text-xs text-purple-200 leading-relaxed">
+              <p className="mt-1 text-xs text-secondary-200 leading-relaxed">
                 Enjoy tiered volume pricing, custom branded packaging boxes, and dedicated laser engraving assistance for employee appreciation and weddings.
               </p>
             </div>
@@ -135,15 +135,15 @@ export default function ContactPage() {
             </p>
 
             {success ? (
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-8 text-center">
-                <CheckCircle2 className="h-12 w-12 text-emerald-600 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-emerald-950">Inquiry Received!</h3>
-                <p className="mt-1 text-xs text-emerald-700 max-w-sm mx-auto">
+              <div className="rounded-2xl bg-primary-50 border border-primary-200 p-8 text-center">
+                <CheckCircle2 className="h-12 w-12 text-primary-600 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-stone-900">Inquiry Received!</h3>
+                <p className="mt-1 text-xs text-primary-700 max-w-sm mx-auto">
                   Thank you for reaching out. One of our team members will contact you on WhatsApp or Email shortly.
                 </p>
                 <button
                   onClick={() => setSuccess(false)}
-                  className="mt-5 rounded-full bg-emerald-700 px-6 py-2 text-xs font-bold text-white hover:bg-emerald-800"
+                  className="mt-5 rounded-full bg-primary-500 px-6 py-2 text-xs font-bold text-white hover:bg-primary-600"
                 >
                   Send Another Note
                 </button>
@@ -165,7 +165,7 @@ export default function ContactPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Aditi Roy"
-                      className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                      className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                     />
                   </div>
 
@@ -177,7 +177,7 @@ export default function ContactPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                      className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                     />
                   </div>
                 </div>
@@ -190,7 +190,7 @@ export default function ContactPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="aditi@example.com"
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
 
@@ -199,7 +199,7 @@ export default function ContactPage() {
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   >
                     <option value="Bulk / Corporate Order">Bulk / Corporate Order (50+ units)</option>
                     <option value="Wedding Favors & Return Gifts">Wedding Favors & Return Gifts</option>
@@ -217,14 +217,14 @@ export default function ContactPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe what you would like printed, quantity, preferred delivery deadline..."
-                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-violet-600"
+                    className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 py-3.5 text-xs font-bold text-white shadow hover:bg-violet-800 transition-colors disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary-500 py-3.5 text-xs font-bold text-white shadow hover:bg-primary-600 transition-colors disabled:opacity-60"
                 >
                   <Send className="h-4 w-4" />
                   <span>{loading ? 'Submitting...' : 'Submit Inquiry'}</span>

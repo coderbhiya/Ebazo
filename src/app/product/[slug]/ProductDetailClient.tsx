@@ -99,7 +99,7 @@ export default function ProductDetailClient({ product }: Props) {
                     type="button"
                     onClick={() => setSelectedImage(img)}
                     className={`h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all ${
-                      selectedImage === img ? 'border-violet-600 ring-2 ring-violet-600/30' : 'border-stone-200 opacity-70 hover:opacity-100'
+                      selectedImage === img ? 'border-primary-600 ring-2 ring-primary-600/30' : 'border-stone-200 opacity-70 hover:opacity-100'
                     }`}
                   >
                     <img src={img} alt={`Thumbnail ${idx}`} className="h-full w-full object-cover" />
@@ -112,7 +112,7 @@ export default function ProductDetailClient({ product }: Props) {
           {/* Right: Product Actions & Specs */}
           <div className="lg:col-span-6 space-y-6">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-violet-700">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary-600">
                 {product.category_name || 'Bespoke Keepsake'}
               </span>
               <h1 className="mt-1 text-2xl sm:text-3xl font-black text-stone-900 leading-tight">
@@ -121,9 +121,9 @@ export default function ProductDetailClient({ product }: Props) {
 
               {/* Rating */}
               <div className="mt-3 flex items-center gap-3">
-                <div className="flex items-center gap-1 text-amber-500">
+                <div className="flex items-center gap-1 text-primary-600">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-4 w-4 fill-primary-500 text-primary-500" />
                   ))}
                 </div>
                 <span className="text-xs font-bold text-stone-900">{product.rating} / 5</span>
@@ -132,10 +132,10 @@ export default function ProductDetailClient({ product }: Props) {
             </div>
 
             {/* Price section */}
-            <div className="flex items-baseline gap-3 rounded-2xl bg-violet-50/70 p-4 border border-violet-100">
-              <span className="text-3xl font-black text-violet-950">₹{product.price}</span>
+            <div className="flex items-baseline gap-3 rounded-2xl bg-primary-50/70 p-4 border border-primary-100">
+              <span className="text-3xl font-black text-primary-700">₹{product.price}</span>
               <span className="text-base text-stone-400 line-through">₹{product.original_price}</span>
-              <span className="text-xs font-bold text-emerald-700">
+              <span className="text-xs font-bold text-primary-600">
                 You Save ₹{(product.original_price - product.price).toFixed(0)} ({discountPercent}% OFF)
               </span>
             </div>
@@ -148,7 +148,7 @@ export default function ProductDetailClient({ product }: Props) {
             {product.shapes && product.shapes.length > 0 && (
               <div>
                 <label className="text-xs font-extrabold uppercase tracking-wider text-stone-900 block mb-2">
-                  Choose Contour Cut Shape: <strong className="text-violet-700">{selectedShape}</strong>
+                  Choose Contour Cut Shape: <strong className="text-primary-600">{selectedShape}</strong>
                 </label>
                 <div className="flex flex-wrap gap-2.5">
                   {product.shapes.map((shape) => (
@@ -158,7 +158,7 @@ export default function ProductDetailClient({ product }: Props) {
                       onClick={() => setSelectedShape(shape)}
                       className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                         selectedShape === shape
-                          ? 'bg-violet-700 text-white shadow-md shadow-violet-600/30 ring-2 ring-violet-700/20'
+                          ? 'bg-primary-500 text-white shadow-md shadow-primary-950/20 ring-2 ring-primary-500/20'
                           : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                       }`}
                     >
@@ -174,9 +174,9 @@ export default function ProductDetailClient({ product }: Props) {
               <button
                 type="button"
                 onClick={() => setIsCustomizerOpen(true)}
-                className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-violet-600 via-purple-700 to-indigo-700 py-4 text-sm font-black text-white shadow-xl shadow-violet-600/30 hover:brightness-110 transition-all hover:scale-[1.01]"
+                className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary-500 py-4 text-sm font-black text-white shadow-xl shadow-primary-950/20 hover:bg-primary-600 transition-all hover:scale-[1.01]"
               >
-                <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+                <Sparkles className="h-5 w-5 text-primary-200 animate-pulse" />
                 <span>Upload Photo & Open Live Customizer</span>
               </button>
 
@@ -223,18 +223,18 @@ export default function ProductDetailClient({ product }: Props) {
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-stone-500 font-medium">Dispatch Speed</span>
-                <span className="text-emerald-700 font-bold">Dispatched within 24-48 Hours</span>
+                <span className="text-primary-700 font-bold">Dispatched within 24-48 Hours</span>
               </div>
             </div>
 
             {/* Delivery & Trust Perks */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div className="flex items-center gap-2 rounded-xl bg-white p-3 border border-stone-200 shadow-sm">
-                <Truck className="h-4 w-4 text-violet-600 flex-shrink-0" />
+                <Truck className="h-4 w-4 text-primary-600 flex-shrink-0" />
                 <span className="text-[11px] font-semibold text-stone-700">Free delivery over ₹499</span>
               </div>
               <div className="flex items-center gap-2 rounded-xl bg-white p-3 border border-stone-200 shadow-sm">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <ShieldCheck className="h-4 w-4 text-primary-600 flex-shrink-0" />
                 <span className="text-[11px] font-semibold text-stone-700">99.8% Print Precision</span>
               </div>
             </div>

@@ -47,7 +47,7 @@ export default function CustomerReviews() {
     <section className="py-20 bg-stone-50 border-b border-stone-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-xl mx-auto mb-14">
-          <span className="text-xs font-bold uppercase tracking-wider text-violet-700">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
             Real Stories, Real Smiles
           </span>
           <h2 className="mt-2 text-3xl font-black text-stone-900 sm:text-4xl">
@@ -55,7 +55,7 @@ export default function CustomerReviews() {
           </h2>
           <div className="mt-3 flex items-center justify-center gap-1">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <Star key={i} className="h-4 w-4 fill-primary-500 text-primary-500" />
             ))}
             <span className="ml-2 text-sm font-bold text-stone-800">4.9 out of 5</span>
             <span className="text-xs text-stone-500">(1,400+ Verified Reviews)</span>
@@ -66,13 +66,13 @@ export default function CustomerReviews() {
           {reviews.map((rev, idx) => (
             <div
               key={idx}
-              className="flex flex-col justify-between rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:shadow-xl hover:border-violet-300 transition-all duration-300"
+              className="flex flex-col justify-between rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:shadow-xl hover:border-primary-300 transition-all duration-300"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex gap-1">
                     {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <Star key={i} className="h-3.5 w-3.5 fill-primary-500 text-primary-500" />
                     ))}
                   </div>
                   <span className="text-[11px] text-stone-400">{rev.date}</span>
@@ -88,17 +88,17 @@ export default function CustomerReviews() {
                   <img
                     src={rev.avatar}
                     alt={rev.name}
-                    className="h-10 w-10 rounded-full object-cover border border-violet-200"
+                    className="h-10 w-10 rounded-full object-cover border border-primary-200"
                   />
                   <div>
                     <div className="flex items-center gap-1">
                       <h4 className="text-xs font-bold text-stone-900">{rev.name}</h4>
                       <span title="Verified Buyer">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        <CheckCircle2 className="h-3 w-3 text-primary-600" />
                       </span>
                     </div>
                     <p className="text-[10px] text-stone-500">{rev.city} • Verified Buyer</p>
-                    <p className="text-[10px] font-semibold text-violet-700 truncate max-w-[150px]">
+                    <p className="text-[10px] font-semibold text-primary-600 truncate max-w-[150px]">
                       {rev.product}
                     </p>
                   </div>

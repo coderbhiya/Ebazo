@@ -143,7 +143,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       {children}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 animate-bounce">
-          <span className="flex h-2 w-2 rounded-full bg-violet-400 animate-ping" />
+          <span className="flex h-2 w-2 rounded-full bg-primary-400 animate-ping" />
           {toastMessage}
         </div>
       )}

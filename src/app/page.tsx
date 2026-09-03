@@ -45,7 +45,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/shop?bestseller=1"
-              className="group mt-4 sm:mt-0 inline-flex items-center gap-1.5 text-sm font-bold text-violet-800 hover:text-violet-600 transition-colors"
+              className="group mt-4 sm:mt-0 inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-primary-600 transition-colors"
             >
               <span>View All Bestsellers</span>
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -62,25 +62,25 @@ export default async function HomePage() {
 
       {/* 4. Interactive Customizer Highlight Banner */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 p-8 sm:p-12 text-white shadow-2xl">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-amber-400/10 blur-3xl" />
+        <div className="relative overflow-hidden rounded-3xl bg-secondary-900 border border-stone-800 p-8 sm:p-12 text-white shadow-2xl">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-primary-500/10 blur-3xl" />
           
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-8 space-y-4">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-500/20 px-3 py-1 text-xs font-bold text-primary-200 border border-primary-500/30">
                 <Sparkles className="h-3.5 w-3.5" />
                 No More Guesswork
               </span>
               <h3 className="text-2xl sm:text-4xl font-black text-white">
                 Live Interactive Studio Customizer
               </h3>
-              <p className="text-sm sm:text-base text-purple-200 max-w-xl leading-relaxed">
+              <p className="text-sm sm:text-base text-stone-300 max-w-xl leading-relaxed">
                 Upload your picture and instantly preview it positioned, rotated, and scaled inside actual laser-cut contours before placing an order.
               </p>
               <div className="pt-2">
                 <Link
                   href="/shop"
-                  className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-xs sm:text-sm font-extrabold text-stone-950 hover:bg-amber-300 transition-all hover:scale-105 shadow-lg shadow-amber-400/20"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary-500 px-6 py-3 text-xs sm:text-sm font-extrabold text-white hover:bg-primary-600 transition-all hover:scale-105 shadow-lg shadow-primary-950/20"
                 >
                   <span>Select Any Product to Try</span>
                   <ArrowRight className="h-4 w-4" />
@@ -89,13 +89,13 @@ export default async function HomePage() {
             </div>
 
             <div className="lg:col-span-4 flex justify-center">
-              <div className="relative h-44 w-44 sm:h-52 sm:w-52 rounded-full border-4 border-amber-300/40 p-2 shadow-2xl bg-white/5 backdrop-blur-md">
+              <div className="relative h-44 w-44 sm:h-52 sm:w-52 rounded-full border-4 border-primary-400/40 p-2 shadow-2xl bg-white/5 backdrop-blur-md">
                 <img
                   src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&auto=format&fit=crop&q=80"
                   alt="Customizer demo"
                   className="h-full w-full rounded-full object-cover"
                 />
-                <span className="absolute bottom-2 right-2 rounded-full bg-stone-900/90 px-2.5 py-1 text-[10px] font-bold text-amber-300 shadow">
+                <span className="absolute bottom-2 right-2 rounded-full bg-secondary-900/90 px-2.5 py-1 text-[10px] font-bold text-primary-200 shadow">
                   100% Live
                 </span>
               </div>
@@ -108,7 +108,7 @@ export default async function HomePage() {
       <section className="py-16 sm:py-20 bg-stone-50/50 border-t border-stone-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-violet-700">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
               Curated Gift Guide
             </span>
             <h2 className="mt-2 text-3xl font-black text-stone-900 sm:text-4xl">
@@ -128,7 +128,7 @@ export default async function HomePage() {
           <div className="mt-12 text-center">
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-8 py-3.5 text-xs font-extrabold text-stone-900 shadow-sm hover:border-violet-600 hover:text-violet-700 transition-all hover:shadow"
+              className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-8 py-3.5 text-xs font-extrabold text-stone-900 shadow-sm hover:border-primary-600 hover:text-primary-600 transition-all hover:shadow"
             >
               <span>Explore All {products.length} Products</span>
               <ArrowRight className="h-4 w-4" />
