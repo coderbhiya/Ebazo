@@ -103,27 +103,38 @@ export default function CartDrawer() {
             ) : (
               cart.map((item) => (
                 <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                  {/* Photo Preview: Either uploaded customized photo or product photo */}
-                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+                  {/* Photo Preview: Either print proof, customer photo, or product mock */}
+                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100 shadow-sm">
                     <img
-                      src={item.customPhotoUrl || item.image}
+                      src={item.printReadyArtworkUrl || item.customPhotoUrl || item.image}
                       alt={item.title}
                       className="h-full w-full object-cover"
                     />
-                    {item.customPhotoUrl && (
+                    {item.printReadyArtworkUrl ? (
+                      <span className="absolute bottom-1 right-1 rounded-md bg-emerald-950/90 px-1 py-0.5 text-[8px] font-bold text-emerald-300">
+                        Proof OK
+                      </span>
+                    ) : item.customPhotoUrl ? (
                       <span className="absolute bottom-1 right-1 rounded-md bg-secondary-900/90 px-1 py-0.5 text-[9px] font-bold text-primary-200">
                         Custom
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h4 className="text-sm font-bold text-stone-900 line-clamp-1">{item.title}</h4>
-                        <span className="inline-block rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600 mt-1">
-                          Shape: {item.shape}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          <span className="inline-block rounded-md bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
+                            Shape: {item.shape}
+                          </span>
+                          {item.customText && (
+                            <span className="inline-block rounded-md bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 text-[10px] font-semibold truncate max-w-[120px]">
+                              ✍️ {item.customText}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}

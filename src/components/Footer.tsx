@@ -60,16 +60,18 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Col 3: Customer Care */}
+          {/* Col 3: Customer Care & Policies */}
           <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Quick Links</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Stories & Policies</h4>
             <ul className="space-y-2 text-xs text-stone-400">
-              <li><Link href="/track" className="hover:text-primary-400 transition-colors">Track Order Status</Link></li>
-              <li><Link href="/contact" className="hover:text-primary-400 transition-colors">Contact Support</Link></li>
-              <li><Link href="/contact" className="hover:text-primary-400 transition-colors">Bulk / Corporate Orders</Link></li>
-              <li><Link href="/shop" className="hover:text-primary-400 transition-colors">All Best Sellers</Link></li>
-              <li><span className="text-stone-500 cursor-not-allowed">Shipping & Returns</span></li>
-              <li><span className="text-stone-500 cursor-not-allowed">Privacy Policy</span></li>
+              <li><Link href="/blog" className="hover:text-primary-400 transition-colors font-semibold text-primary-300">The Journal (Blog)</Link></li>
+              <li><Link href="/about" className="hover:text-primary-400 transition-colors">About Ebanzo</Link></li>
+              <li><Link href="/track" className="hover:text-primary-400 transition-colors">Track Order</Link></li>
+              <li><Link href="/shipping-policy" className="hover:text-primary-400 transition-colors">Shipping & Delivery</Link></li>
+              <li><Link href="/refund-policy" className="hover:text-primary-400 transition-colors">Refund & Replacement</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-primary-400 transition-colors">Privacy & Photo Safety</Link></li>
+              <li><Link href="/terms-and-conditions" className="hover:text-primary-400 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/faqs" className="hover:text-primary-400 transition-colors">Help & FAQs</Link></li>
             </ul>
           </div>
 

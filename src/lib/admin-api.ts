@@ -49,6 +49,8 @@ export interface OrderItem {
   product_image: string;
   shape_selected: string;
   custom_photo_url: string;
+  print_ready_artwork_url?: string;
+  customization_json?: string;
   custom_text: string;
   quantity: number;
   price: number;
@@ -99,6 +101,7 @@ export interface AdminProduct {
   is_bestseller: number;
   is_featured: number;
   stock: number;
+  created_at?: string;
 }
 
 export interface Customer {
@@ -239,7 +242,7 @@ export async function fetchAdminOrders(params?: {
   }
 }
 
-export async function fetchAdminOrder(id: number): Promise<Order | null> {
+export async function fetchAdminOrder(id: number | string): Promise<Order | null> {
   try {
     const res = await fetch(`${API_BASE}/admin/orders/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
@@ -302,6 +305,22 @@ export async function fetchAdminProducts(): Promise<AdminProduct[]> {
   } catch (err) {
     console.warn('Admin products fetch notice:', err);
     return [];
+  }
+}
+
+export async function fetchAdminProductById(id: string | number): Promise<AdminProduct | null> {
+  try {
+    const res = await fetch(`${API_BASE}/products/${id}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.data) return data.data;
+    }
+    // Fallback: search in all products
+    const all = await fetchAdminProducts();
+    return all.find((p) => String(p.id) === String(id) || p.slug === String(id)) || null;
+  } catch (err) {
+    console.warn('Fetch admin product by ID notice:', err);
+    return null;
   }
 }
 
@@ -511,3 +530,313 @@ export async function updateInquiryStatus(id: number, status: string = 'read') {
   });
   return res.json();
 }
+
+// ── Category Settings & Management ──
+export async function fetchAdminCategories(): Promise<import('./api').Category[]> {
+  const res = await fetch(`${API_BASE}/admin/categories`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  return data.data || [];
+}
+
+export async function createAdminCategory(payload: {
+  name: string;
+  slug?: string;
+  parent_id?: number | null;
+  image_url?: string;
+  description?: string;
+  display_order?: number;
+  bg_removal_enabled?: number;
+}) {
+  const res = await fetch(`${API_BASE}/admin/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function updateAdminCategory(
+  id: number,
+  payload: Partial<import('./api').Category>
+) {
+  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function updateCategoryBgRemoval(id: number, enabled: boolean) {
+  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bg_removal_enabled: enabled ? 1 : 0 }),
+  });
+  return res.json();
+}
+
+export async function deleteAdminCategory(id: number) {
+  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return res.json();
+}
+
+export async function bulkDeleteAdminCategories(ids: number[]) {
+  const res = await fetch(`${API_BASE}/admin/categories/bulk-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  return res.json();
+}
+
+export interface AdminSettingsData {
+  hero_mode?: 'split' | 'slider';
+  hero_slider_autoplay?: string | boolean;
+  hero_slider_interval?: string | number;
+  razorpay_enabled?: string | boolean;
+  razorpay_mode?: 'test' | 'live';
+  razorpay_key_id?: string;
+  razorpay_key_secret?: string;
+  razorpay_webhook_secret?: string;
+  razorpay_currency?: string;
+  razorpay_auto_capture?: string | boolean;
+  // Shiprocket settings
+  shiprocket_enabled?: string | boolean;
+  shiprocket_mode?: 'sandbox' | 'live';
+  shiprocket_email?: string;
+  shiprocket_password?: string;
+  shiprocket_token?: string;
+  shiprocket_pickup_location?: string;
+  shiprocket_channel_id?: string;
+  shiprocket_default_courier?: string;
+  shiprocket_default_weight?: string | number;
+  shiprocket_default_length?: string | number;
+  shiprocket_default_breadth?: string | number;
+  shiprocket_default_height?: string | number;
+  shiprocket_auto_push?: string | boolean;
+  store_name?: string;
+  free_shipping_threshold?: string | number;
+  shipping_fee?: string | number;
+  support_phone?: string;
+  support_email?: string;
+  store_gst?: string;
+  [key: string]: any;
+}
+
+export async function fetchAdminSettings(): Promise<AdminSettingsData> {
+  try {
+    const res = await fetch(`${API_BASE}/admin/settings`, { cache: 'no-store' });
+    if (!res.ok) return {};
+    const data = await res.json();
+    return data.data || {};
+  } catch (err) {
+    console.warn('Admin settings fetch notice:', err);
+    return {};
+  }
+}
+
+export async function saveAdminSettings(settings: Partial<AdminSettingsData>) {
+  const res = await fetch(`${API_BASE}/admin/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  return res.json();
+}
+
+export async function testRazorpayCredentials(payload: {
+  razorpay_key_id: string;
+  razorpay_key_secret?: string;
+  razorpay_mode: 'test' | 'live';
+}) {
+  const res = await fetch(`${API_BASE}/admin/payments/test-razorpay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function testShiprocketCredentials(payload: {
+  shiprocket_email: string;
+  shiprocket_password?: string;
+  shiprocket_mode: 'sandbox' | 'live';
+  shiprocket_pickup_location?: string;
+}) {
+  const res = await fetch(`${API_BASE}/admin/shipping/test-shiprocket`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function createShiprocketShipment(orderId: number) {
+  const res = await fetch(`${API_BASE}/admin/shipping/shiprocket/create-order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: orderId }),
+  });
+  return res.json();
+}
+
+// ----------------------------------------------------
+// CMS & STOREFRONT PAGES ADMIN API
+// ----------------------------------------------------
+
+export interface AdminCMSPage {
+  id: number;
+  title: string;
+  slug: string;
+  subtitle?: string;
+  content: string;
+  meta_title?: string;
+  meta_description?: string;
+  is_published: number;
+  is_system: number;
+  show_in_header: number;
+  show_in_footer: number;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchAdminPages(params?: { search?: string; status?: string }): Promise<{
+  pages: AdminCMSPage[];
+  meta: { total: number; published: number; drafts: number };
+}> {
+  try {
+    const q = new URLSearchParams();
+    if (params?.search) q.append('search', params.search);
+    if (params?.status && params.status !== 'all') q.append('status', params.status);
+
+    const res = await fetch(`${API_BASE}/admin/pages?${q.toString()}`, { cache: 'no-store' });
+    if (!res.ok) return { pages: [], meta: { total: 0, published: 0, drafts: 0 } };
+    const data = await res.json();
+    return {
+      pages: data.data || [],
+      meta: data.meta || { total: 0, published: 0, drafts: 0 },
+    };
+  } catch (err) {
+    console.warn('Admin pages fetch notice:', err);
+    return { pages: [], meta: { total: 0, published: 0, drafts: 0 } };
+  }
+}
+
+export async function fetchAdminPage(id: number): Promise<AdminCMSPage | null> {
+  try {
+    const res = await fetch(`${API_BASE}/admin/pages/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data || null;
+  } catch (err) {
+    console.warn('Admin page fetch notice:', err);
+    return null;
+  }
+}
+
+export async function saveAdminPage(id: number | null, payload: Partial<AdminCMSPage>) {
+  const url = id ? `${API_BASE}/admin/pages/${id}` : `${API_BASE}/admin/pages`;
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteAdminPage(id: number) {
+  const res = await fetch(`${API_BASE}/admin/pages/${id}`, {
+    method: 'DELETE',
+  });
+  return res.json();
+}
+
+// ----------------------------------------------------
+// BLOGS & ARTICLES ADMIN API
+// ----------------------------------------------------
+
+export interface AdminBlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  featured_image: string;
+  category: string;
+  tags?: string[];
+  tags_json?: string;
+  author_name: string;
+  read_time: string;
+  meta_title?: string;
+  meta_description?: string;
+  is_published: number;
+  is_featured: number;
+  views_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchAdminBlogs(params?: { search?: string; category?: string; status?: string }): Promise<{
+  blogs: AdminBlogPost[];
+  meta: { total: number; published: number; drafts: number; total_views: number };
+}> {
+  try {
+    const q = new URLSearchParams();
+    if (params?.search) q.append('search', params.search);
+    if (params?.category && params.category !== 'all') q.append('category', params.category);
+    if (params?.status && params.status !== 'all') q.append('status', params.status);
+
+    const res = await fetch(`${API_BASE}/admin/blogs?${q.toString()}`, { cache: 'no-store' });
+    if (!res.ok) return { blogs: [], meta: { total: 0, published: 0, drafts: 0, total_views: 0 } };
+    const data = await res.json();
+    return {
+      blogs: data.data || [],
+      meta: data.meta || { total: 0, published: 0, drafts: 0, total_views: 0 },
+    };
+  } catch (err) {
+    console.warn('Admin blogs fetch notice:', err);
+    return { blogs: [], meta: { total: 0, published: 0, drafts: 0, total_views: 0 } };
+  }
+}
+
+export async function fetchAdminBlog(id: number): Promise<AdminBlogPost | null> {
+  try {
+    const res = await fetch(`${API_BASE}/admin/blogs/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data || null;
+  } catch (err) {
+    console.warn('Admin blog fetch notice:', err);
+    return null;
+  }
+}
+
+export async function saveAdminBlog(id: number | null, payload: Partial<AdminBlogPost>) {
+  const url = id ? `${API_BASE}/admin/blogs/${id}` : `${API_BASE}/admin/blogs`;
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function deleteAdminBlog(id: number) {
+  const res = await fetch(`${API_BASE}/admin/blogs/${id}`, {
+    method: 'DELETE',
+  });
+  return res.json();
+}
+
+
+
+

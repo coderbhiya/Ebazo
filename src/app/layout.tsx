@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   keywords: 'personalized photo gifts, custom fridge magnets, acrylic keychains, car hanging charm, tabletop photo stand, ebanzo gifts india',
 };
 
+import { AuthProvider } from '@/context/AuthContext';
+
 export default function RootLayout({
   children,
 }: {
@@ -30,9 +32,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${jakarta.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans bg-white text-stone-900 selection:bg-violet-600 selection:text-white">
-        <CartProvider>
-          <StorefrontShell>{children}</StorefrontShell>
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <StorefrontShell>{children}</StorefrontShell>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

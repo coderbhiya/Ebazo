@@ -27,7 +27,7 @@ export default function ProductCard({ product }: Props) {
         <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-stone-100 mb-3.5">
           <Link href={`/product/${product.slug}`}>
             <img
-              src={product.image_url}
+              src={product.image_url && product.image_url.trim() ? product.image_url : '/frames/photostand/1_nos_a.png'}
               alt={product.title}
               className="h-full w-full object-cover group-hover:scale-106 transition-transform duration-500"
             />

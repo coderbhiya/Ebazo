@@ -5,15 +5,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Search, ShoppingBag, Heart, Truck, Sparkles, X, 
-  Menu, ChevronDown, ArrowRight, ShieldCheck 
+  Menu, ChevronDown, ArrowRight, ShieldCheck, User, LogOut 
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { fetchProducts, Product, Category, fetchCategories } from '@/lib/api';
 
 export default function Navbar() {
   const router = useRouter();
   const { cart, wishlist, setIsCartOpen } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,11 +46,14 @@ export default function Navbar() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Close search dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -137,7 +144,7 @@ export default function Navbar() {
                       className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary-50/70 transition-colors"
                     >
                       <img
-                        src={product.image_url}
+                        src={product.image_url && product.image_url.trim() ? product.image_url : '/frames/photostand/1_nos_a.png'}
                         alt={product.title}
                         className="h-12 w-12 rounded-lg object-cover border border-stone-200"
                       />
@@ -185,6 +192,51 @@ export default function Navbar() {
             )}
           </Link>
 
+          {/* User Account Icon */}
+          <div ref={userMenuRef} className="relative">
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100 transition-colors"
+                  title="My Account"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-600 text-white text-xs font-bold">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline max-w-[80px] truncate">{user?.name?.split(' ')[0]}</span>
+                </button>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-stone-200 bg-white py-2 shadow-xl z-50">
+                    <div className="border-b border-stone-100 px-4 py-3">
+                      <p className="text-sm font-semibold text-stone-900 truncate">{user?.name}</p>
+                      <p className="text-xs text-stone-500 truncate">{user?.email}</p>
+                    </div>
+                    <Link href="/account" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                      <User className="h-4 w-4" /> My Account
+                    </Link>
+                    <Link href="/account/orders" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                      <ShoppingBag className="h-4 w-4" /> My Orders
+                    </Link>
+                    <Link href="/account/addresses" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                      <Truck className="h-4 w-4" /> Addresses
+                    </Link>
+                    <div className="border-t border-stone-100 mt-1 pt-1">
+                      <button onClick={() => { logout(); setIsUserMenuOpen(false); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                        <LogOut className="h-4 w-4" /> Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Link href="/auth" className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100 transition-colors">
+                <User className="h-5 w-5" />
+                <span className="hidden sm:inline">Login</span>
+              </Link>
+            )}
+          </div>
+
           <button
             onClick={() => setIsCartOpen(true)}
             className="group relative flex items-center gap-2 rounded-full bg-secondary-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 transition-all hover:shadow-md"
@@ -200,34 +252,37 @@ export default function Navbar() {
       </div>
 
       {/* Desktop Category Bar */}
-      <nav className="hidden border-t border-stone-100 bg-stone-50/50 px-4 py-2 lg:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 text-xs font-medium text-stone-600">
-          <Link href="/shop" className="hover:text-primary-600 transition-colors">
+      <nav className="hidden border-t border-stone-100 bg-white px-4 py-2.5 lg:block">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 text-sm font-semibold text-stone-600">
+          <Link href="/shop" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             All Products
           </Link>
-          <Link href="/shop?category=fridge-magnet" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=fridge-magnet" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Fridge Magnets
           </Link>
-          <Link href="/shop?category=key-chains" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=key-chains" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Keychains
           </Link>
-          <Link href="/shop?category=car-hanging" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=car-hanging" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Car Hangings
           </Link>
-          <Link href="/shop?category=car-stand" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=car-stand" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Car Dashboard Stands
           </Link>
-          <Link href="/shop?category=mini-gallary" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=mini-gallary" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Mini Galleries
           </Link>
-          <Link href="/shop?category=photostand" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=photostand" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Acrylic Photo Stands
           </Link>
-          <Link href="/shop?category=wallet-card" className="hover:text-primary-600 transition-colors">
+          <Link href="/shop?category=wallet-card" className="hover:text-primary-600 transition-colors whitespace-nowrap">
             Wallet Cards
           </Link>
-          <Link href="/contact" className="hover:text-primary-600 transition-colors font-semibold text-primary-600">
-            Bulk / Corporate Gifting
+          <Link href="/blog" className="hover:text-primary-600 transition-colors whitespace-nowrap font-bold text-amber-700">
+            Journal & Guides
+          </Link>
+          <Link href="/contact" className="hover:text-primary-600 transition-colors font-bold text-primary-600 whitespace-nowrap">
+            Bulk Gifting
           </Link>
         </div>
       </nav>
@@ -264,6 +319,13 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="my-2 border-t border-stone-100" />
+            <Link
+              href="/blog"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-3 py-2 text-amber-700 font-bold hover:text-amber-800"
+            >
+              The Journal (Blog & Guides)
+            </Link>
             <Link
               href="/track"
               onClick={() => setIsMobileMenuOpen(false)}

@@ -32,7 +32,6 @@ export default function AdminHeader({ onToggleMobileMenu, stats }: AdminHeaderPr
   const getBreadcrumb = () => {
     if (pathname === '/admin') return 'Dashboard Overview';
     if (pathname.startsWith('/admin/orders')) return 'Order Management';
-    if (pathname.startsWith('/admin/production')) return 'Customization & Print Station';
     if (pathname.startsWith('/admin/products')) return 'Product Offerings';
     if (pathname.startsWith('/admin/inventory')) return 'Inventory & Stock Management';
     if (pathname.startsWith('/admin/customers')) return 'Customer Directory';
@@ -41,6 +40,8 @@ export default function AdminHeader({ onToggleMobileMenu, stats }: AdminHeaderPr
     if (pathname.startsWith('/admin/coupons')) return 'Coupons & Marketing';
     if (pathname.startsWith('/admin/reviews')) return 'Customer Reviews Moderation';
     if (pathname.startsWith('/admin/analytics')) return 'Performance Analytics';
+    if (pathname.startsWith('/admin/blogs')) return 'Blog & Articles Studio';
+    if (pathname.startsWith('/admin/pages')) return 'Pages & Policy CMS';
     if (pathname.startsWith('/admin/settings')) return 'Studio Settings & Users';
     if (pathname.startsWith('/admin/inquiries')) return 'Customer Inquiries';
     return 'Console';
@@ -72,13 +73,13 @@ export default function AdminHeader({ onToggleMobileMenu, stats }: AdminHeaderPr
 
       {/* Right: Quick actions, Live alerts & Profile */}
       <div className="flex items-center gap-2 sm:gap-2.5">
-        {/* Quick Print Station Launcher */}
+        {/* Quick Orders Pipeline Link */}
         <Link
-          href="/admin/production"
+          href="/admin/orders"
           className="hidden sm:flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-amber-500/20 transition-colors"
         >
           <Printer className="h-3 w-3" />
-          <span>Queue ({stats?.pending_print || 0})</span>
+          <span>Queue ({(stats?.pending_orders || stats?.pending_print || 0)})</span>
         </Link>
 
         {/* Notifications Dropdown */}

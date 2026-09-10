@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, MessageSquare, 
   ExternalLink, LogOut, Printer, Scissors, Truck, 
   CreditCard, Tag, Star, BarChart3, Users, Settings,
-  AlertTriangle, X, ShieldCheck
+  AlertTriangle, X, ShieldCheck, Layers, FileText, BookOpen
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -35,7 +35,16 @@ export default function AdminSidebar({
     router.push('/admin/login');
   };
 
-  const navGroups = [
+  const navGroups: {
+    title: string;
+    items: {
+      name: string;
+      href: string;
+      icon: any;
+      badge?: string;
+      badgeColor?: string;
+    }[];
+  }[] = [
     {
       title: 'CORE',
       items: [
@@ -51,13 +60,6 @@ export default function AdminSidebar({
           icon: ShoppingBag, 
           badge: badgeCounts.pending_orders ? String(badgeCounts.pending_orders) : undefined 
         },
-        { 
-          name: 'Production & Print Queue', 
-          href: '/admin/production', 
-          icon: Printer,
-          badge: badgeCounts.pending_print ? String(badgeCounts.pending_print) : undefined,
-          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-        },
         { name: 'Shipping & Couriers', href: '/admin/shipping', icon: Truck },
         { name: 'Payments & Revenue', href: '/admin/payments', icon: CreditCard },
       ]
@@ -66,6 +68,7 @@ export default function AdminSidebar({
       title: 'CATALOG & INVENTORY',
       items: [
         { name: 'Product Offerings', href: '/admin/products', icon: Package },
+        { name: 'Product Categories', href: '/admin/categories', icon: Layers },
         { 
           name: 'Inventory & Stock Levels', 
           href: '/admin/inventory', 
@@ -89,8 +92,10 @@ export default function AdminSidebar({
       ]
     },
     {
-      title: 'MARKETING & ANALYTICS',
+      title: 'MARKETING & CMS',
       items: [
+        { name: 'Blog & Articles', href: '/admin/blogs', icon: BookOpen },
+        { name: 'Pages & Policy CMS', href: '/admin/pages', icon: FileText },
         { name: 'Coupons & Discounts', href: '/admin/coupons', icon: Tag },
         { name: 'Sales Analytics & Reports', href: '/admin/analytics', icon: BarChart3 },
       ]
