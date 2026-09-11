@@ -40,11 +40,11 @@ export default function ProductDetailClient({ product }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50/50 py-10 sm:py-14">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50/50 py-6 sm:py-14">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-xs text-stone-500 font-medium">
+        <nav className="mb-4 sm:mb-6 flex items-center gap-1.5 sm:gap-2 text-xs text-stone-500 font-medium overflow-x-auto whitespace-nowrap pb-1">
           <Link href="/" className="hover:text-stone-900">Home</Link>
           <span>/</span>
           <Link href="/shop" className="hover:text-stone-900">Catalog</Link>
@@ -53,11 +53,11 @@ export default function ProductDetailClient({ product }: Props) {
             {product.category_name || product.category_slug}
           </Link>
           <span>/</span>
-          <span className="text-stone-900 font-bold truncate max-w-[200px]">{product.title}</span>
+          <span className="text-stone-900 font-bold truncate max-w-[160px] sm:max-w-[240px]">{product.title}</span>
         </nav>
 
         {/* Main Product Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start rounded-3xl border border-stone-200 bg-white p-6 sm:p-10 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start rounded-2xl sm:rounded-3xl border border-stone-200 bg-white p-4 sm:p-8 lg:p-10 shadow-sm">
           
           {/* Left: Images Showcase */}
           <div className="lg:col-span-6 space-y-4">

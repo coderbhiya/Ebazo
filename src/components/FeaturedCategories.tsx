@@ -11,7 +11,7 @@ interface Props {
 
 export default function FeaturedCategories({ categories }: Props) {
   return (
-    <section className="py-16 sm:py-20 bg-stone-50/70 border-b border-stone-200">
+    <section className="py-12 sm:py-16 bg-stone-50/70">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10">

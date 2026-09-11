@@ -40,13 +40,13 @@ export default function CartDrawer() {
         onClick={() => setIsCartOpen(false)}
       />
 
-      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+      <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-stone-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-stone-200 px-4 sm:px-6 py-3.5 sm:py-4">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-primary-600" />
-              <h2 className="text-lg font-bold text-stone-900">Your Shopping Bag</h2>
+              <h2 className="text-base sm:text-lg font-bold text-stone-900">Your Shopping Bag</h2>
               <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary-700">
                 {cart.length}
               </span>
@@ -60,7 +60,7 @@ export default function CartDrawer() {
           </div>
 
           {/* Free Delivery Bar */}
-          <div className="border-b border-stone-100 bg-primary-50/50 px-6 py-3">
+          <div className="border-b border-stone-100 bg-primary-50/50 px-4 sm:px-6 py-2.5 sm:py-3">
             <div className="flex items-center justify-between text-xs font-medium text-secondary-900 mb-1.5">
               <span>
                 {amountNeeded > 0 ? (
@@ -173,7 +173,7 @@ export default function CartDrawer() {
 
           {/* Footer & Checkout */}
           {cart.length > 0 && (
-            <div className="border-t border-stone-200 bg-stone-50 p-6">
+            <div className="border-t border-stone-200 bg-stone-50 p-4 sm:p-6">
               {/* Coupon Bar */}
               <div className="mb-4">
                 <div className="flex gap-2">

@@ -29,20 +29,25 @@ export default function AccountDashboard() {
   const initial = user.name?.charAt(0).toUpperCase();
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 16px' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827', marginBottom: 28 }}>My Account</h1>
+    <div className="max-w-4xl mx-auto py-6 sm:py-10 px-3 sm:px-6">
+      <h1 className="text-2xl sm:text-3xl font-black text-stone-900 mb-6">My Account</h1>
 
       {/* Profile Card */}
-      <div style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', borderRadius: 16, padding: '28px 28px', marginBottom: 24, color: '#fff', display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 800, flexShrink: 0 }}>
-          {initial}
+      <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-primary-900 via-secondary-900 to-primary-950 p-4 sm:p-7 mb-6 text-white flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4 text-center sm:text-left shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl font-black flex-shrink-0">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg sm:text-xl font-bold">{user.name}</p>
+            <p className="text-xs sm:text-sm text-stone-300 truncate">{user.email}</p>
+            {user.phone && <p className="text-xs text-stone-400">{user.phone}</p>}
+          </div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{user.name}</p>
-          <p style={{ fontSize: 14, opacity: 0.8, margin: '4px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
-          {user.phone && <p style={{ fontSize: 13, opacity: 0.7, margin: '2px 0 0' }}>{user.phone}</p>}
-        </div>
-        <Link href="/account/profile" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+        <Link 
+          href="/account/profile" 
+          className="rounded-xl bg-white/15 border border-white/30 text-white px-4 py-2 text-xs font-bold hover:bg-white/25 transition-colors flex-shrink-0"
+        >
           Edit Profile
         </Link>
       </div>

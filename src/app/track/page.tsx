@@ -46,15 +46,15 @@ function TrackContent() {
   }, [initialNumber]);
 
   return (
-    <div className="min-h-screen bg-stone-50/70 py-12 sm:py-16">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50/70 py-6 sm:py-16">
+      <div className="mx-auto max-w-4xl px-3 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="text-center max-w-xl mx-auto mb-10">
+        <div className="text-center max-w-xl mx-auto mb-8 sm:mb-10">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 mb-3">
             <Truck className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-black text-stone-900">Track Your Custom Keepsake</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900">Track Your Custom Keepsake</h1>
           <p className="mt-2 text-xs text-stone-600">
             Enter your Order Reference ID (EBZ-XXXX) or Courier Tracking Number to view real-time studio production & delivery milestones.
           </p>
@@ -65,7 +65,7 @@ function TrackContent() {
               e.preventDefault();
               handleSearch();
             }}
-            className="mt-6 flex gap-2"
+            className="mt-6 flex flex-col sm:flex-row gap-2"
           >
             <div className="relative flex-1">
               <input
@@ -74,14 +74,14 @@ function TrackContent() {
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
                 placeholder="Enter Tracking ID (e.g. TRK... or EBZ-...)"
-                className="w-full rounded-2xl border border-stone-300 bg-white py-3.5 pl-11 pr-4 text-xs font-bold uppercase tracking-wider text-stone-900 placeholder-stone-400 focus:border-primary-600 focus:outline-none shadow-sm"
+                className="w-full rounded-2xl border border-stone-300 bg-white py-3 pl-10 pr-4 text-xs font-bold uppercase tracking-wider text-stone-900 placeholder-stone-400 focus:border-primary-600 focus:outline-none shadow-sm"
               />
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-2xl bg-primary-500 px-6 py-3.5 text-xs font-extrabold text-white shadow-md hover:bg-primary-600 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+              className="rounded-2xl bg-primary-500 px-6 py-3 text-xs font-extrabold text-white shadow-md hover:bg-primary-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
             >
               {loading ? (
                 <>
@@ -89,7 +89,7 @@ function TrackContent() {
                   <span>Checking...</span>
                 </>
               ) : (
-                <span>Track</span>
+                <span>Track Order</span>
               )}
             </button>
           </form>

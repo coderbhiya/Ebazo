@@ -7,7 +7,8 @@ import {
   LayoutDashboard, ShoppingBag, Package, MessageSquare, 
   ExternalLink, LogOut, Printer, Scissors, Truck, 
   CreditCard, Tag, Star, BarChart3, Users, Settings,
-  AlertTriangle, X, ShieldCheck, Layers, FileText, BookOpen
+  AlertTriangle, X, ShieldCheck, Layers, FileText, BookOpen,
+  Sparkles
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -94,6 +95,7 @@ export default function AdminSidebar({
     {
       title: 'MARKETING & CMS',
       items: [
+        { name: 'Hero Banners & Slider', href: '/admin/settings?tab=hero', icon: Sparkles },
         { name: 'Blog & Articles', href: '/admin/blogs', icon: BookOpen },
         { name: 'Pages & Policy CMS', href: '/admin/pages', icon: FileText },
         { name: 'Coupons & Discounts', href: '/admin/coupons', icon: Tag },

@@ -170,16 +170,16 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/70 py-10 sm:py-14">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50/70 py-6 sm:py-12">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         
-        <div className="mb-6 flex items-center gap-2">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2">
           <Link href="/shop" className="text-xs font-semibold text-stone-500 hover:text-stone-900 flex items-center gap-1">
             <ArrowLeft className="h-3.5 w-3.5" /> Continue Shopping
           </Link>
         </div>
 
-        <h1 className="text-3xl font-black text-stone-900 mb-8">Secure Checkout</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-stone-900 mb-6 sm:mb-8">Secure Checkout</h1>
 
         {errorMessage && (
           <div className="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-medium text-rose-700">
@@ -187,18 +187,18 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
           
           {/* Left: Customer & Address Information */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-4 sm:space-y-6">
             
             {/* Contact Details */}
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl sm:rounded-3xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-stone-900 flex items-center gap-2">
                 <span>1. Contact Details</span>
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-xs font-bold text-stone-700 block mb-1">Full Name *</label>
                   <input
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Shipping Address */}
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl sm:rounded-3xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-stone-900">
                 2. Shipping Address (Pan-India)
               </h2>

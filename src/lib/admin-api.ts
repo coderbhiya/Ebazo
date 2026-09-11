@@ -599,6 +599,7 @@ export interface AdminSettingsData {
   hero_mode?: 'split' | 'slider';
   hero_slider_autoplay?: string | boolean;
   hero_slider_interval?: string | number;
+  hero_slides?: string | any[];
   razorpay_enabled?: string | boolean;
   razorpay_mode?: 'test' | 'live';
   razorpay_key_id?: string;
@@ -836,6 +837,22 @@ export async function deleteAdminBlog(id: number) {
   });
   return res.json();
 }
+
+export async function uploadAdminPhoto(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('photo', file);
+  const res = await fetch(`${API_BASE}/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await res.json();
+  if (data.status === 'success' && data.data?.url) {
+    return data.data.url;
+  }
+  throw new Error(data.message || 'Image upload failed');
+}
+
+
 
 
 

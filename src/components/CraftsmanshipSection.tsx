@@ -28,20 +28,20 @@ export default function CraftsmanshipSection() {
   ];
 
   return (
-    <section className="py-20 bg-secondary-900 text-stone-100 relative overflow-hidden">
+    <section className="py-12 sm:py-20 bg-secondary-900 text-stone-100 relative overflow-hidden">
       <div className="pointer-events-none absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-primary-600/20 blur-3xl" />
       <div className="pointer-events-none absolute top-0 right-0 h-96 w-96 rounded-full bg-primary-500/10 blur-[120px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-16">
+      <div className="relative mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary-500/30 bg-primary-950/60 px-3.5 py-1 text-xs font-bold text-primary-300 backdrop-blur-md mb-3">
             <HeartHandshake className="h-3.5 w-3.5 text-primary-400" />
             <span>The Ebanzo Difference</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tight sm:text-4xl text-white">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
             Obsessive Craftsmanship in Every Millimeter
           </h2>
-          <p className="mt-3 text-sm text-stone-400">
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-400">
             Unlike cheap laminated paper prints that peel within weeks, Ebanzo keepsakes are fused directly into durable acrylic and engineered to last a lifetime.
           </p>
         </div>

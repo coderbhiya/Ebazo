@@ -81,8 +81,8 @@ function AuthForm() {
   );
 
   return (
-    <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', background: '#f9fafb' }}>
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 40px rgba(0,0,0,0.08)', padding: '40px 36px', width: '100%', maxWidth: 440 }}>
+    <div className="min-h-[80vh] flex items-center justify-center py-8 sm:py-12 px-3 sm:px-4 bg-stone-50">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-xl p-5 sm:p-9 w-full max-w-md">
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link href="/" style={{ textDecoration: 'none' }}>

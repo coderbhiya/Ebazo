@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  X, Upload, ZoomIn, ZoomOut, RotateCw, Check, 
+  X, Upload, ZoomIn, ZoomOut, RotateCw, RotateCcw, Check, 
   Sparkles, Sliders, Image as ImageIcon, Loader2,
-  Move, RotateCcw, Type, Eye, RefreshCw, FileText, Wand2
+  Move, Type, RefreshCw, FileText, Wand2,
+  FlipHorizontal, FlipVertical, Focus, ArrowUp, ArrowDown, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { Product, uploadCustomPhoto, uploadPrintArtwork, CustomizationSettings } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
@@ -23,6 +24,8 @@ async function generatePrintArtworkBlob(
   rotation: number,
   posX: number,
   posY: number,
+  flipH: boolean,
+  flipV: boolean,
   previewContainerSize: number,
   customText: string,
   textStyle: 'gold' | 'frosted' | 'dark'
@@ -85,7 +88,7 @@ async function generatePrintArtworkBlob(
     const scaleRatio = size / (previewContainerSize || 300);
     ctx.translate(posX * scaleRatio, posY * scaleRatio);
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(zoom, zoom);
+    ctx.scale(zoom * (flipH ? -1 : 1), zoom * (flipV ? -1 : 1));
 
     const imgAspect = img.width / img.height;
     let drawW = size;
@@ -109,7 +112,7 @@ async function generatePrintArtworkBlob(
     const scaleRatio = size / (previewContainerSize || 300);
     ctx.translate(posX * scaleRatio, posY * scaleRatio);
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(zoom, zoom);
+    ctx.scale(zoom * (flipH ? -1 : 1), zoom * (flipV ? -1 : 1));
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
@@ -177,22 +180,47 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
   const [currentShape, setCurrentShape] = useState(initialShape || product.shapes?.[0] || 'Default');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'adjust' | 'text' | 'shape'>('adjust');
   
-  // Customization transforms
+  // Customization transforms (Canva-grade)
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [posX, setPosX] = useState(0);
   const [posY, setPosY] = useState(0);
+  const [flipH, setFlipH] = useState(false);
+  const [flipV, setFlipV] = useState(false);
   const [customText, setCustomText] = useState('');
   const [textStyle, setTextStyle] = useState<'gold' | 'frosted' | 'dark'>('gold');
   const [isUploading, setIsUploading] = useState(false);
   const [isBgRemoving, setIsBgRemoving] = useState(false);
   const bgRemovalEnabled = product.category_bg_removal === 1;
   
-  // Panning controls
-  const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef<{ x: number; y: number; initialPosX: number; initialPosY: number }>({ x: 0, y: 0, initialPosX: 0, initialPosY: 0 });
+  // Interactive gesture tracking
+  const [isDragging, setIsDragging] = useState(false);
+  const [interactionType, setInteractionType] = useState<'pan' | 'scale-corner' | 'rotate-stem' | null>(null);
+  
+  const interactionStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    initialPosX: number;
+    initialPosY: number;
+    initialZoom: number;
+    initialRotation: number;
+    centerX: number;
+    centerY: number;
+    initialDist: number;
+  }>({
+    clientX: 0,
+    clientY: 0,
+    initialPosX: 0,
+    initialPosY: 0,
+    initialZoom: 1,
+    initialRotation: 0,
+    centerX: 0,
+    centerY: 0,
+    initialDist: 0
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewBoxRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +231,26 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
       setCurrentShape(product.shapes[0]);
     }
   }, [initialShape, product]);
+
+  // Non-passive wheel listener for smooth Canva-like mouse scroll zooming
+  useEffect(() => {
+    const el = previewBoxRef.current;
+    if (!el || !imagePreviewUrl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+      setZoom((prev) => {
+        const next = Math.round(Math.min(3.5, Math.max(0.4, prev * zoomFactor)) * 100) / 100;
+        return next;
+      });
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [imagePreviewUrl]);
 
   const isKeychainOrCharm = Boolean(
     product.category_slug?.toLowerCase().includes('key') || 
@@ -233,9 +281,10 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
       setRotation(0);
       setPosX(0);
       setPosY(0);
+      setFlipH(false);
+      setFlipV(false);
 
       if (bgRemovalEnabled) {
-        // Show original first as placeholder, then replace with BG-removed version
         const originalUrl = URL.createObjectURL(file);
         setImagePreviewUrl(originalUrl);
         setIsBgRemoving(true);
@@ -251,7 +300,6 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
           setImageFile(processedFile);
         } catch (err) {
           console.warn('BG removal failed, using original:', err);
-          // already showing original, no action needed
         } finally {
           setIsBgRemoving(false);
         }
@@ -262,27 +310,94 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
     }
   };
 
-  const handlePanStart = (clientX: number, clientY: number) => {
-    if (!imagePreviewUrl || !isEditMode) return;
-    setIsPanning(true);
-    panStartRef.current = {
-      x: clientX,
-      y: clientY,
+  // Panning & Direct Canva Canvas Gestures
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, type: 'pan' | 'scale-corner' | 'rotate-stem' = 'pan') => {
+    if (!imagePreviewUrl) return;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    
+    const rect = previewBoxRef.current?.getBoundingClientRect();
+    const centerX = rect ? rect.left + rect.width / 2 : 0;
+    const centerY = rect ? rect.top + rect.height / 2 : 0;
+    const dist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+
+    setIsDragging(true);
+    setInteractionType(type);
+    
+    interactionStartRef.current = {
+      clientX: e.clientX,
+      clientY: e.clientY,
       initialPosX: posX,
       initialPosY: posY,
+      initialZoom: zoom,
+      initialRotation: rotation,
+      centerX,
+      centerY,
+      initialDist: dist,
     };
   };
 
-  const handlePanMove = useCallback((clientX: number, clientY: number) => {
-    if (!isPanning) return;
-    const dx = clientX - panStartRef.current.x;
-    const dy = clientY - panStartRef.current.y;
-    setPosX(panStartRef.current.initialPosX + dx);
-    setPosY(panStartRef.current.initialPosY + dy);
-  }, [isPanning]);
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !interactionType) return;
+    const start = interactionStartRef.current;
 
-  const handlePanEnd = () => {
-    setIsPanning(false);
+    if (interactionType === 'pan') {
+      const dx = e.clientX - start.clientX;
+      const dy = e.clientY - start.clientY;
+      setPosX(start.initialPosX + dx);
+      setPosY(start.initialPosY + dy);
+    } else if (interactionType === 'scale-corner') {
+      const currentDist = Math.hypot(e.clientX - start.centerX, e.clientY - start.centerY);
+      if (start.initialDist > 0) {
+        const scaleChange = currentDist / start.initialDist;
+        const newZoom = Math.min(3.5, Math.max(0.4, start.initialZoom * scaleChange));
+        setZoom(Math.round(newZoom * 100) / 100);
+      }
+    } else if (interactionType === 'rotate-stem') {
+      const initialAngle = Math.atan2(start.clientY - start.centerY, start.clientX - start.centerX);
+      const currentAngle = Math.atan2(e.clientY - start.centerY, e.clientX - start.centerX);
+      const angleDelta = (currentAngle - initialAngle) * (180 / Math.PI);
+      let newRot = Math.round(start.initialRotation + angleDelta);
+      while (newRot > 180) newRot -= 360;
+      while (newRot < -180) newRot += 360;
+      setRotation(newRot);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    setInteractionType(null);
+    try {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    } catch (_) {}
+  };
+
+  // Touch pinch support
+  const touchDistRef = useRef<number | null>(null);
+  const touchZoomStartRef = useRef<number>(1);
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      touchDistRef.current = dist;
+      touchZoomStartRef.current = zoom;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && touchDistRef.current !== null) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const ratio = dist / touchDistRef.current;
+      const newZoom = Math.min(3.5, Math.max(0.4, touchZoomStartRef.current * ratio));
+      setZoom(Math.round(newZoom * 100) / 100);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchDistRef.current = null;
   };
 
   const resetTransforms = () => {
@@ -290,6 +405,13 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
     setRotation(0);
     setPosX(0);
     setPosY(0);
+    setFlipH(false);
+    setFlipV(false);
+  };
+
+  const nudge = (dx: number, dy: number) => {
+    setPosX((prev) => prev + dx);
+    setPosY((prev) => prev + dy);
   };
 
   const handleSaveAndAdd = async () => {
@@ -321,6 +443,8 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
           rotation,
           posX,
           posY,
+          flipH,
+          flipV,
           previewBoxWidth,
           customText,
           textStyle
@@ -339,6 +463,8 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
         rotation,
         posX,
         posY,
+        flipH,
+        flipV,
         text: customText.trim() || undefined,
         textStyle,
         shape: currentShape,
@@ -395,32 +521,41 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
         className="hidden"
       />
 
-      {/* Slide-over Drawer / Modal Container */}
-      <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
+      {/* Slide-over Drawer Container */}
+      <div className="relative w-full max-w-lg bg-white text-stone-900 h-full shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
         
-        {/* Drawer Header (FNP Style) */}
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-stone-200 bg-white px-6 py-4 shadow-sm">
-          <div className="flex items-center gap-3">
+        {/* Clean Luxury Header (Ebanzo / FNP Style) */}
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition-colors"
+              className="flex-shrink-0 rounded-full p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-900 transition-colors"
+              title="Close"
             >
               <X className="h-5 w-5" />
             </button>
-            <h2 className="text-base font-extrabold text-stone-900">
-              Upload Personalize Image
-            </h2>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-extrabold text-stone-900 truncate">
+                Upload Personalize Image
+              </h2>
+              <p className="text-[11px] font-medium text-stone-500 hidden xs:block truncate">
+                {hasPhoto ? 'Crop, zoom & fit inside the frame' : 'Step 1 of 2: Select your photo'}
+              </p>
+            </div>
           </div>
-          <span className="rounded-md bg-stone-100 px-2.5 py-1 text-[11px] font-bold text-stone-600">
-            {hasPhoto ? 'Step 2/2' : 'Step 1/2'}
-          </span>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="inline-flex items-center rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-700 border border-stone-200">
+              {hasPhoto ? 'Step 2/2' : 'Step 1/2'}
+            </span>
+          </div>
         </div>
 
         {/* Main Content Body */}
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-4 sm:p-6 space-y-5 bg-stone-50/50">
           
-          {/* 3D Realistic Acrylic Frame Stage */}
-          <div className="relative rounded-3xl border border-stone-200/90 bg-gradient-to-b from-stone-100 via-stone-50 to-stone-100 p-6 flex flex-col items-center justify-center min-h-[360px] select-none shadow-inner">
+          {/* Acrylic Studio Canvas Stage */}
+          <div className="relative rounded-3xl border border-stone-200/90 bg-gradient-to-b from-stone-100 via-stone-50 to-stone-100 p-4 sm:p-6 flex flex-col items-center justify-center min-h-[350px] select-none shadow-inner overflow-hidden">
             
             {/* Top Keyring Loop if charm */}
             {isKeychainOrCharm && (
@@ -443,7 +578,7 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
                 >
                   {/* Frame shape background */}
                   <div 
-                    className="absolute inset-0 bg-stone-200/90 border-2 border-dashed border-stone-400/80 group-hover:border-[#5c6b24] group-hover:bg-stone-300/60 transition-all"
+                    className="absolute inset-0 bg-stone-200/90 border-2 border-dashed border-stone-400 group-hover:border-[#5c6b24] group-hover:bg-stone-300/60 transition-all"
                     style={{
                       WebkitMaskImage: `url("${activeFrameUrl}")`,
                       maskImage: `url("${activeFrameUrl}")`,
@@ -458,316 +593,602 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
 
                   {/* Center CTA inside the frame shape */}
                   <div className="relative z-10 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
-                    <div className="h-14 w-14 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-[#5c6b24] mb-2 group-hover:scale-110 transition-transform">
+                    <div className="h-14 w-14 rounded-full bg-white shadow-lg flex items-center justify-center text-[#5c6b24] mb-2 group-hover:scale-110 transition-transform">
                       <ImageIcon className="h-7 w-7 animate-pulse" />
                     </div>
                     <span className="text-sm font-black text-stone-900 drop-shadow-sm">
                       Upload & Fit Inside Frame
                     </span>
                     <span className="text-[11px] text-stone-600 mt-1 font-semibold">
-                      Click here or the button below
+                      Click here to choose your photo
                     </span>
                   </div>
                 </div>
               ) : (
-                /* When photo is uploaded: Mask the photo inside the exact frame shape */
+                /* When photo is uploaded: Canva Interactive Frame Cutout Stage */
                 <div 
                   ref={previewBoxRef}
-                  className="relative h-64 w-64 sm:h-72 sm:w-72 overflow-hidden select-none"
-                  style={{
-                    WebkitMaskImage: `url("${activeFrameUrl}")`,
-                    maskImage: `url("${activeFrameUrl}")`,
-                    WebkitMaskSize: 'contain',
-                    maskSize: 'contain',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskPosition: 'center',
-                    maskPosition: 'center',
-                  }}
-                  onMouseDown={(e) => handlePanStart(e.clientX, e.clientY)}
-                  onMouseMove={(e) => handlePanMove(e.clientX, e.clientY)}
-                  onMouseUp={handlePanEnd}
-                  onMouseLeave={handlePanEnd}
-                  onTouchStart={(e) => {
-                    if (e.touches[0]) handlePanStart(e.touches[0].clientX, e.touches[0].clientY);
-                  }}
-                  onTouchMove={(e) => {
-                    if (e.touches[0]) handlePanMove(e.touches[0].clientX, e.touches[0].clientY);
-                  }}
-                  onTouchEnd={handlePanEnd}
+                  className="relative h-64 w-64 sm:h-72 sm:w-72 select-none touch-none"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                 >
-                  {/* The transformed customer photo */}
+                  {/* Masked Photo Container */}
                   <div
-                    className={`h-full w-full ${isPanning ? 'cursor-grabbing' : isEditMode ? 'cursor-grab' : 'cursor-default'}`}
+                    className="relative w-full h-full overflow-hidden"
                     style={{
-                      transform: `translate(${posX}px, ${posY}px) rotate(${rotation}deg) scale(${zoom})`,
-                      transformOrigin: 'center center',
-                      transition: isPanning ? 'none' : 'transform 0.08s ease-out',
+                      WebkitMaskImage: `url("${activeFrameUrl}")`,
+                      maskImage: `url("${activeFrameUrl}")`,
+                      WebkitMaskSize: 'contain',
+                      maskSize: 'contain',
+                      WebkitMaskRepeat: 'no-repeat',
+                      maskRepeat: 'no-repeat',
+                      WebkitMaskPosition: 'center',
+                      maskPosition: 'center',
                     }}
+                    onPointerDown={(e) => handlePointerDown(e, 'pan')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
                   >
-                    <img
-                      src={imagePreviewUrl!}
-                      alt="Uploaded customer preview"
-                      className="h-full w-full object-cover pointer-events-none select-none"
-                      draggable={false}
-                    />
+                    {/* The transformed customer photo */}
+                    <div
+                      className={`h-full w-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                      style={{
+                        transform: `translate(${posX}px, ${posY}px) rotate(${rotation}deg) scale(${zoom * (flipH ? -1 : 1)}, ${zoom * (flipV ? -1 : 1)})`,
+                        transformOrigin: 'center center',
+                        transition: isDragging ? 'none' : 'transform 0.08s ease-out',
+                      }}
+                    >
+                      <img
+                        src={imagePreviewUrl!}
+                        alt="Uploaded customer preview"
+                        className="h-full w-full object-cover pointer-events-none select-none"
+                        draggable={false}
+                      />
+                    </div>
+
+                    {/* Realistic 3D Cast Acrylic Surface Glass Reflection */}
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 opacity-70" />
+                    <div className="pointer-events-none absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/30 blur-2xl" />
+
+                    {/* Laser Engraved Name Inscription */}
+                    {customText.trim() && (
+                      <div className="absolute bottom-6 inset-x-4 flex justify-center pointer-events-none z-30">
+                        <div className={`inline-flex items-center gap-1.5 max-w-[85%] rounded-full px-3 py-1 shadow-lg backdrop-blur-md border ${
+                          textStyle === 'gold' 
+                            ? 'bg-amber-950/85 text-amber-200 border-amber-400/40 shadow-amber-950/40' 
+                            : textStyle === 'frosted'
+                            ? 'bg-white/85 text-stone-900 border-white/80 shadow-stone-900/20'
+                            : 'bg-stone-950/85 text-white border-white/20 shadow-black/50'
+                        }`}>
+                          <span className="truncate text-[11px] font-bold tracking-wide">
+                            {customText}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* BG Removing Overlay */}
+                    {isBgRemoving && (
+                      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-none">
+                        <Wand2 className="h-6 w-6 text-violet-400 animate-pulse mb-2" />
+                        <p className="text-[11px] font-semibold text-violet-200 text-center">Removing background…</p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Realistic 3D Cast Acrylic Surface Glass Reflection */}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/10 opacity-70" />
-                  <div className="pointer-events-none absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/30 blur-2xl" />
-
-                  {/* Laser Engraved Name Inscription */}
-                  {customText.trim() && (
-                    <div className="absolute bottom-6 inset-x-4 flex justify-center pointer-events-none z-30">
-                      <div className={`inline-flex items-center gap-1.5 max-w-[85%] rounded-full px-3 py-1 shadow-lg backdrop-blur-md border ${
-                        textStyle === 'gold' 
-                          ? 'bg-amber-950/85 text-amber-200 border-amber-400/40 shadow-amber-950/40' 
-                          : textStyle === 'frosted'
-                          ? 'bg-white/85 text-stone-900 border-white/80 shadow-stone-900/20'
-                          : 'bg-stone-950/85 text-white border-white/20 shadow-black/50'
-                      }`}>
-                        <span className="truncate text-[11px] font-bold tracking-wide">
-                          {customText}
-                        </span>
+                  {/* Canva Interactive Selection Transform Box Overlay */}
+                  <div className="absolute inset-0 pointer-events-none rounded-2xl border border-sky-500/50">
+                    {/* Top Stem Rotation Handle */}
+                    <div 
+                      className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto cursor-grab active:cursor-grabbing group"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, 'rotate-stem');
+                      }}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                      title="Drag to rotate angle"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-sky-500 text-white shadow-md flex items-center justify-center ring-2 ring-white hover:scale-110 transition-transform">
+                        <RotateCw className="w-3 h-3 group-hover:rotate-45 transition-transform" />
                       </div>
+                      <div className="w-0.5 h-2.5 bg-sky-400" />
                     </div>
-                  )}
 
-                  {/* BG Removing Overlay */}
-                  {isBgRemoving && (
-                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-none">
-                      <Wand2 className="h-6 w-6 text-violet-400 animate-pulse mb-2" />
-                      <p className="text-[11px] font-semibold text-violet-200 text-center">Removing background…</p>
-                    </div>
-                  )}
+                    {/* 4 Corner Resize Scale Handles */}
+                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => {
+                      const posClasses = {
+                        'top-left': '-top-2 -left-2 cursor-nwse-resize',
+                        'top-right': '-top-2 -right-2 cursor-nesw-resize',
+                        'bottom-left': '-bottom-2 -left-2 cursor-nesw-resize',
+                        'bottom-right': '-bottom-2 -right-2 cursor-nwse-resize',
+                      }[pos];
+
+                      return (
+                        <div
+                          key={pos}
+                          className={`absolute ${posClasses} w-4 h-4 rounded-full bg-white border-2 border-sky-500 shadow-md pointer-events-auto hover:scale-125 transition-transform`}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            handlePointerDown(e, 'scale-corner');
+                          }}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                          onPointerCancel={handlePointerUp}
+                          title="Drag corner to zoom / scale"
+                        />
+                      );
+                    })}
+                  </div>
+
                 </div>
               )}
 
             </div>
 
-            {/* Shape selection pills if product has multiple frame shapes */}
-            {product.shapes && product.shapes.length > 1 && (
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 z-10">
-                {product.shapes.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setCurrentShape(s)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold transition-all ${
-                      currentShape === s
-                        ? 'bg-stone-900 text-white shadow-sm ring-2 ring-[#5c6b24]'
-                        : 'bg-white/90 text-stone-700 border border-stone-300 hover:bg-stone-100'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            {/* Canva Quick Floating Pill Toolbar (When photo is uploaded) */}
+            {hasPhoto && (
+              <div className="mt-4 z-20 flex flex-wrap items-center justify-center gap-1.5 bg-white/95 backdrop-blur-md border border-stone-200/90 px-3 py-1.5 rounded-full shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))}
+                  className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </button>
+                <span className="text-[11px] font-mono font-bold text-stone-800 px-1 min-w-[42px] text-center">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(3.5, +(z + 0.1).toFixed(2)))}
+                  className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </button>
+
+                <div className="h-4 w-[1px] bg-stone-200 mx-0.5" />
+
+                <button
+                  type="button"
+                  onClick={() => setRotation((r) => ((r + 90) % 360))}
+                  className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                  title="Rotate 90°"
+                >
+                  <RotateCw className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFlipH((f) => !f)}
+                  className={`p-1.5 rounded-full transition-colors ${flipH ? 'bg-sky-100 text-sky-700' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'}`}
+                  title="Flip Horizontal"
+                >
+                  <FlipHorizontal className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFlipV((f) => !f)}
+                  className={`p-1.5 rounded-full transition-colors ${flipV ? 'bg-sky-100 text-sky-700' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'}`}
+                  title="Flip Vertical"
+                >
+                  <FlipVertical className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setPosX(0); setPosY(0); }}
+                  className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                  title="Center Photo"
+                >
+                  <Focus className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetTransforms}
+                  className="p-1.5 rounded-full text-stone-500 hover:text-amber-600 hover:bg-stone-100 transition-colors"
+                  title="Reset Adjustments"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
               </div>
             )}
+
+            {/* Gesture Helper text badge */}
+            {hasPhoto && (
+              <p className="mt-2 text-[11px] text-stone-500 font-medium flex items-center gap-1">
+                <Move className="h-3 w-3 text-[#5c6b24]" />
+                <span>Drag photo to move • Scroll to zoom • Corner handles to scale</span>
+              </p>
+            )}
+
           </div>
 
-          {/* STEP 1: If No Photo Uploaded Yet (FNP Style Upload Button + Instructions) */}
+          {/* STEP 1: If No Photo Uploaded Yet */}
           {!hasPhoto ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#5c6b24] hover:bg-[#4d5a1e] py-4 text-sm font-extrabold text-white shadow-lg transition-colors active:scale-[0.99]"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#5c6b24] hover:bg-[#4d5a1e] py-4 text-sm font-extrabold text-white shadow-xl shadow-[#5c6b24]/20 transition-all active:scale-[0.99]"
               >
                 <ImageIcon className="h-5 w-5" />
-                <span>Upload Image</span>
+                <span>Select & Upload Photo</span>
               </button>
 
-              {/* Instructions Card (Exact FNP Requirements) */}
-              <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 space-y-2 text-xs text-stone-600">
+              {/* Instructions Card */}
+              <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-2 text-xs text-stone-600 shadow-sm">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-stone-900 flex items-center gap-1.5">
                     <FileText className="h-4 w-4 text-stone-700" />
                     Instructions
                   </h4>
                   {bgRemovalEnabled && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold text-violet-800 border border-violet-200">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 border border-violet-200 px-2.5 py-0.5 text-[10px] font-bold text-violet-800">
                       <Wand2 className="h-3 w-3 text-violet-600" />
-                      Auto Cutout / BG Remove
+                      Auto Cutout / BG Removal
                     </span>
                   )}
                 </div>
                 <ul className="space-y-1.5 text-[11px] list-disc list-inside text-stone-600">
-                  <li>File size should be 100 KB-25 MB only</li>
-                  <li>Upload only JPEG, PNG or WebP</li>
-                  <li>Please upload a good quality image for sharp UV printing</li>
-                  {bgRemovalEnabled && (
-                    <li className="text-violet-700 font-semibold">
-                      Background will be automatically removed to create a clean acrylic cutout
-                    </li>
-                  )}
+                  <li>Supported formats: JPEG, PNG or WebP (up to 25 MB)</li>
+                  <li>Upload a sharp, bright photo for high-definition UV printing</li>
+                  <li>Canva-style interactive tools let you move, zoom and rotate photo inside the frame</li>
                 </ul>
               </div>
             </div>
           ) : (
-            /* STEP 2: Photo Uploaded (Re-Upload & Edit Image Buttons) */
+            /* STEP 2: Photo Uploaded - Canva Tool Tabs */
             <div className="space-y-4">
-              {/* Dual Action Buttons (FNP exact style) */}
-              <div className="grid grid-cols-2 gap-3">
+              
+              {/* Tabs Navigation */}
+              <div className="flex items-center gap-1 p-1 bg-stone-200/70 rounded-2xl border border-stone-300/80">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('adjust')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'adjust'
+                      ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-300'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Sliders className="h-3.5 w-3.5 text-[#5c6b24]" />
+                  <span>Adjust</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('text')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'text'
+                      ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-300'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Type className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Engraved Text</span>
+                </button>
+
+                {product.shapes && product.shapes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('shape')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                      activeTab === 'shape'
+                        ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-300'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-[#5c6b24]" />
+                    <span>Shape</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-stone-300 bg-white py-3 text-xs font-bold text-stone-800 hover:bg-stone-50 hover:border-stone-400 transition-colors shadow-sm"
+                  className="px-3 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 flex items-center gap-1 rounded-xl transition-colors hover:bg-white/80"
+                  title="Choose another image"
                 >
-                  <RefreshCw className="h-4 w-4 text-stone-600" />
-                  <span>Re-Upload</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsEditMode(!isEditMode)}
-                  className={`w-full flex items-center justify-center gap-2 rounded-2xl border py-3 text-xs font-bold transition-all shadow-sm ${
-                    isEditMode
-                      ? 'border-[#5c6b24] bg-[#5c6b24]/10 text-[#5c6b24]'
-                      : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50'
-                  }`}
-                >
-                  <Sliders className="h-4 w-4" />
-                  <span>{isEditMode ? 'Done Editing' : 'Edit Image'}</span>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Re-Upload</span>
                 </button>
               </div>
 
-              {/* Collapsible Edit Tools when "Edit Image" is clicked */}
-              {isEditMode && (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-4 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                    <span className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
-                      <Sliders className="h-3.5 w-3.5 text-[#5c6b24]" />
-                      Crop, Zoom & Rotate
-                    </span>
-                    <button
-                      type="button"
-                      onClick={resetTransforms}
-                      className="flex items-center gap-1 text-[11px] font-bold text-[#5c6b24] hover:underline"
-                    >
-                      <RotateCcw className="h-3 w-3" /> Reset
-                    </button>
-                  </div>
-
-                  {/* Zoom Slider */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold text-stone-700">
-                      <span>Photo Zoom / Scale</span>
-                      <span className="text-stone-500">{zoom.toFixed(1)}x</span>
+              {/* Tab 1: Adjust (Canva Tool Suite) */}
+              {activeTab === 'adjust' && (
+                <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-4 shadow-sm animate-in fade-in duration-150">
+                  
+                  {/* Zoom Slider + Presets */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold text-stone-800">
+                      <span className="flex items-center gap-1.5">
+                        <ZoomIn className="h-3.5 w-3.5 text-[#5c6b24]" />
+                        Photo Scale / Zoom
+                      </span>
+                      <span className="font-mono text-stone-600 font-bold">{Math.round(zoom * 100)}%</span>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <button 
                         type="button" 
-                        onClick={() => setZoom(Math.max(0.6, +(zoom - 0.1).toFixed(2)))} 
-                        className="p-1 rounded-lg border border-stone-300 bg-white text-stone-600 hover:bg-stone-100"
+                        onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)))} 
+                        className="p-1.5 rounded-lg border border-stone-300 bg-stone-50 text-stone-700 hover:bg-stone-100"
                       >
                         <ZoomOut className="h-3.5 w-3.5" />
                       </button>
                       <input
                         type="range"
-                        min="0.6"
+                        min="0.4"
                         max="3.0"
                         step="0.05"
                         value={zoom}
                         onChange={(e) => setZoom(parseFloat(e.target.value))}
-                        className="w-full accent-[#5c6b24] h-1.5 bg-stone-200 rounded-lg cursor-pointer"
+                        className="w-full accent-[#5c6b24] h-2 bg-stone-200 rounded-lg cursor-pointer"
                       />
                       <button 
                         type="button" 
-                        onClick={() => setZoom(Math.min(3.0, +(zoom + 0.1).toFixed(2)))} 
-                        className="p-1 rounded-lg border border-stone-300 bg-white text-stone-600 hover:bg-stone-100"
+                        onClick={() => setZoom((z) => Math.min(3.0, +(z + 0.1).toFixed(2)))} 
+                        className="p-1.5 rounded-lg border border-stone-300 bg-stone-50 text-stone-700 hover:bg-stone-100"
                       >
                         <ZoomIn className="h-3.5 w-3.5" />
                       </button>
                     </div>
+
+                    {/* Quick Zoom Presets */}
+                    <div className="flex items-center gap-1.5 pt-1">
+                      {[
+                        { label: 'Fit', val: 0.85 },
+                        { label: '100%', val: 1.0 },
+                        { label: '125%', val: 1.25 },
+                        { label: '150%', val: 1.5 },
+                        { label: '200%', val: 2.0 },
+                      ].map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => setZoom(p.val)}
+                          className={`flex-1 py-1 text-[11px] font-bold rounded-lg border transition-all ${
+                            Math.abs(zoom - p.val) < 0.05
+                              ? 'bg-[#5c6b24]/15 border-[#5c6b24] text-[#5c6b24]'
+                              : 'border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Rotation Slider */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold text-stone-700">
-                      <span>Angle Rotation</span>
-                      <span className="text-stone-500">{rotation}°</span>
+                  <div className="space-y-2 pt-3 border-t border-stone-200">
+                    <div className="flex justify-between items-center text-xs font-bold text-stone-800">
+                      <span className="flex items-center gap-1.5">
+                        <RotateCw className="h-3.5 w-3.5 text-amber-600" />
+                        Angle Rotation
+                      </span>
+                      <span className="font-mono text-stone-600 font-bold">{rotation}°</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
                         type="range"
                         min="-180"
                         max="180"
-                        step="5"
+                        step="1"
                         value={rotation}
                         onChange={(e) => setRotation(parseInt(e.target.value))}
-                        className="w-full accent-[#5c6b24] h-1.5 bg-stone-200 rounded-lg cursor-pointer"
+                        className="w-full accent-[#5c6b24] h-2 bg-stone-200 rounded-lg cursor-pointer"
                       />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {[-90, 0, 90, 180].map((deg) => (
+                        <button
+                          key={deg}
+                          type="button"
+                          onClick={() => setRotation(deg)}
+                          className={`flex-1 py-1 text-[11px] font-bold rounded-lg border transition-all ${
+                            rotation === deg
+                              ? 'bg-[#5c6b24]/15 border-[#5c6b24] text-[#5c6b24]'
+                              : 'border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100'
+                          }`}
+                        >
+                          {deg === 0 ? '0° (Reset)' : `${deg > 0 ? '+' : ''}${deg}°`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Position Nudge D-pad + Flip */}
+                  <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[11px] font-bold text-stone-600 block mb-1.5">
+                        Pixel Nudge:
+                      </span>
+                      <div className="inline-grid grid-cols-3 gap-1 p-1 bg-stone-100 rounded-xl border border-stone-200">
+                        <div />
+                        <button
+                          type="button"
+                          onClick={() => nudge(0, -10)}
+                          className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-2xs"
+                          title="Nudge Up"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <div />
+                        <button
+                          type="button"
+                          onClick={() => nudge(-10, 0)}
+                          className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-2xs"
+                          title="Nudge Left"
+                        >
+                          <ArrowLeft className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setPosX(0); setPosY(0); }}
+                          className="p-1.5 rounded-lg bg-[#5c6b24] text-white hover:bg-[#4d5a1e] shadow-2xs"
+                          title="Center"
+                        >
+                          <Focus className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => nudge(10, 0)}
+                          className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-2xs"
+                          title="Nudge Right"
+                        >
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                        <div />
+                        <button
+                          type="button"
+                          onClick={() => nudge(0, 10)}
+                          className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-2xs"
+                          title="Nudge Down"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                        <div />
+                      </div>
+                    </div>
+
+                    {/* Flip & Reset Actions */}
+                    <div className="flex-1 space-y-1.5">
+                      <span className="text-[11px] font-bold text-stone-600 block">
+                        Transform:
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setFlipH((f) => !f)}
+                          className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                            flipH 
+                              ? 'bg-[#5c6b24]/15 border-[#5c6b24] text-[#5c6b24]' 
+                              : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                          }`}
+                        >
+                          <FlipHorizontal className="h-3.5 w-3.5" />
+                          <span>Flip H</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFlipV((f) => !f)}
+                          className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                            flipV 
+                              ? 'bg-[#5c6b24]/15 border-[#5c6b24] text-[#5c6b24]' 
+                              : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                          }`}
+                        >
+                          <FlipVertical className="h-3.5 w-3.5" />
+                          <span>Flip V</span>
+                        </button>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => setRotation((r) => (r + 90) % 360)}
-                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 flex-shrink-0"
+                        onClick={resetTransforms}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold text-stone-600 hover:text-amber-700 bg-stone-100 border border-stone-200 hover:bg-stone-200 transition-colors"
                       >
-                        +90°
+                        <RotateCcw className="h-3 w-3" />
+                        <span>Reset All Positions</span>
                       </button>
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-stone-500 flex items-center gap-1">
-                    <Move className="h-3 w-3 text-stone-400" />
-                    Tip: Click and drag image directly inside the frame to adjust placement.
-                  </p>
+                </div>
+              )}
 
-                  {/* Name Inscription Input */}
-                  <div className="pt-2 border-t border-stone-200 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-stone-800 flex items-center gap-1">
-                        <Type className="h-3.5 w-3.5 text-[#5c6b24]" />
-                        Engraved Text / Names (Optional):
-                      </label>
-                      {customText && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setTextStyle('gold')}
-                            className={`w-3.5 h-3.5 rounded-full bg-amber-600 transition-transform ${textStyle === 'gold' ? 'ring-2 ring-primary-500 scale-110' : 'opacity-60'}`}
-                            title="Gold Inscription"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setTextStyle('frosted')}
-                            className={`w-3.5 h-3.5 rounded-full bg-stone-200 border border-stone-400 transition-transform ${textStyle === 'frosted' ? 'ring-2 ring-primary-500 scale-110' : 'opacity-60'}`}
-                            title="Frosted White"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setTextStyle('dark')}
-                            className={`w-3.5 h-3.5 rounded-full bg-stone-900 transition-transform ${textStyle === 'dark' ? 'ring-2 ring-primary-500 scale-110' : 'opacity-60'}`}
-                            title="Midnight Dark"
-                          />
-                        </div>
-                      )}
+              {/* Tab 2: Engraved Text */}
+              {activeTab === 'text' && (
+                <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-3.5 shadow-sm animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                      <Type className="h-3.5 w-3.5 text-[#5c6b24]" />
+                      Engraved Name / Date Inscription (Optional):
+                    </label>
+                  </div>
+
+                  <input
+                    type="text"
+                    maxLength={35}
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    placeholder="e.g. Rahul & Sneha • Forever"
+                    className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3.5 py-2.5 text-xs text-stone-900 placeholder-stone-400 focus:border-[#5c6b24] focus:bg-white focus:outline-none"
+                  />
+
+                  {/* Badge Style Selector */}
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-stone-600 block">
+                      Plate Metallic Style:
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'gold', label: 'Royal Gold', bg: 'bg-amber-950 text-amber-200 border-amber-500/50' },
+                        { id: 'frosted', label: 'Frosted White', bg: 'bg-stone-100 text-stone-900 border-stone-300' },
+                        { id: 'dark', label: 'Midnight Black', bg: 'bg-stone-900 text-white border-stone-700' },
+                      ].map((st) => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setTextStyle(st.id as any)}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${st.bg} ${
+                            textStyle === st.id ? 'ring-2 ring-[#5c6b24] scale-[1.02]' : 'opacity-70 hover:opacity-100'
+                          }`}
+                        >
+                          {st.label}
+                        </button>
+                      ))}
                     </div>
-                    <input
-                      type="text"
-                      maxLength={35}
-                      value={customText}
-                      onChange={(e) => setCustomText(e.target.value)}
-                      placeholder="e.g. Rahul & Sneha • Forever"
-                      className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs text-stone-900 placeholder-stone-400 focus:border-[#5c6b24] focus:outline-none"
-                    />
                   </div>
                 </div>
               )}
 
-              {/* Quality Guarantee badge */}
-              <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200/60 p-3 text-xs text-emerald-800">
+              {/* Tab 3: Shape Selector */}
+              {activeTab === 'shape' && product.shapes && product.shapes.length > 1 && (
+                <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-2.5 shadow-sm animate-in fade-in duration-150">
+                  <span className="text-xs font-bold text-stone-900 block">
+                    Choose Acrylic Frame Shape:
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {product.shapes.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setCurrentShape(s)}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all border ${
+                          currentShape === s
+                            ? 'bg-[#5c6b24] text-white border-[#5c6b24] shadow-md ring-2 ring-[#5c6b24]/30'
+                            : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quality Guarantee Badge */}
+              <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200/80 p-3 text-xs text-emerald-800">
                 <Check className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                 <span>3mm Cast Acrylic with High-Definition Japanese UV cured direct print</span>
               </div>
+
             </div>
           )}
 
         </div>
 
-        {/* Sticky Bottom Bar (Save & Continue Button like FNP) */}
-        <div className="sticky bottom-0 z-20 border-t border-stone-200 bg-white p-4 sm:p-5 shadow-lg">
+        {/* Sticky Bottom Bar (Save & Continue Button) */}
+        <div className="sticky bottom-0 z-30 border-t border-stone-200 bg-white p-4 sm:p-5 shadow-lg">
           <button
             type="button"
             disabled={isUploading}
@@ -797,4 +1218,3 @@ export default function LiveCustomizerModal({ product, isOpen, onClose, selected
     </div>
   );
 }
-

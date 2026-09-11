@@ -44,21 +44,21 @@ const reviews = [
 
 export default function CustomerReviews() {
   return (
-    <section className="py-20 bg-stone-50 border-b border-stone-200">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto mb-14">
+    <section className="py-10 sm:py-20 bg-stone-50 border-b border-stone-200">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div className="text-center max-w-xl mx-auto mb-8 sm:mb-14">
           <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
             Real Stories, Real Smiles
           </span>
-          <h2 className="mt-2 text-3xl font-black text-stone-900 sm:text-4xl">
+          <h2 className="mt-1 sm:mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900">
             Loved by Over 7,000+ Gift Givers
           </h2>
-          <div className="mt-3 flex items-center justify-center gap-1">
+          <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="h-4 w-4 fill-primary-500 text-primary-500" />
             ))}
-            <span className="ml-2 text-sm font-bold text-stone-800">4.9 out of 5</span>
-            <span className="text-xs text-stone-500">(1,400+ Verified Reviews)</span>
+            <span className="ml-2 text-xs sm:text-sm font-bold text-stone-800">4.9 out of 5</span>
+            <span className="text-[11px] sm:text-xs text-stone-500">(1,400+ Verified Reviews)</span>
           </div>
         </div>
 

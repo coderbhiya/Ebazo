@@ -1,5 +1,25 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api';
 
+export interface HeroSlide {
+  id?: string;
+  tag?: string;
+  badge?: string;
+  title: string;
+  subtitle: string;
+  price?: string;
+  price_text?: string;
+  image: string;
+  mobile_image?: string;
+  categoryLink?: string;
+  link?: string;
+  button_text?: string;
+  secondary_button_text?: string;
+  secondary_button_link?: string;
+  layout?: 'full_banner' | 'split_card';
+  text_color?: 'light' | 'dark';
+  gradient?: string;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -43,6 +63,8 @@ export interface CustomizationSettings {
   rotation: number;
   posX: number;
   posY: number;
+  flipH?: boolean;
+  flipV?: boolean;
   text?: string;
   textStyle?: 'gold' | 'frosted' | 'dark';
   shape?: string;
@@ -348,6 +370,7 @@ export interface PublicSettings {
   hero_mode?: 'split' | 'slider';
   hero_slider_autoplay?: string | boolean;
   hero_slider_interval?: string | number;
+  hero_slides?: string | HeroSlide[];
   razorpay_enabled?: string | boolean;
   razorpay_mode?: 'test' | 'live';
   razorpay_key_id?: string;
@@ -475,6 +498,7 @@ export async function fetchBlogCategories(): Promise<{ category: string; count: 
     return [];
   }
 }
+
 
 
 

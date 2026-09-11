@@ -49,26 +49,26 @@ function ShopContent() {
   }, [selectedCategory, searchQuery, sortBy]);
 
   return (
-    <div className="min-h-screen bg-stone-50/50 py-10 sm:py-14">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50/50 py-6 sm:py-14">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         
         {/* Top Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
             Artisanal Keepsakes
           </span>
-          <h1 className="mt-1 text-3xl font-black text-stone-900 sm:text-4xl">
+          <h1 className="mt-1 text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900">
             {selectedCategory
               ? categories.find((c) => c.slug === selectedCategory)?.name || 'Custom Gifts'
               : 'All Personalized Products'}
           </h1>
-          <p className="mt-2 text-sm text-stone-600 max-w-xl">
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-stone-600 max-w-xl">
             Choose your preferred shape and size, upload your favorite picture, and experience true laser-crafted photo gifts.
           </p>
         </div>
 
         {/* Filter & Sort Bar */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-y border-stone-200 py-4 bg-white/60 backdrop-blur-sm px-4 rounded-2xl">
+        <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-y border-stone-200 py-3 sm:py-4 bg-white/60 backdrop-blur-sm px-3 sm:px-4 rounded-2xl">
           {/* Search filter */}
           <div className="relative flex-1 max-w-sm">
             <input
@@ -76,13 +76,13 @@ function ShopContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filter by keyword..."
-              className="w-full rounded-full border border-stone-200 bg-stone-50 py-2 pl-10 pr-4 text-xs text-stone-900 focus:border-primary-600 focus:bg-white focus:outline-none"
+              className="w-full rounded-full border border-stone-200 bg-stone-50 py-2 pl-9 pr-4 text-xs text-stone-900 focus:border-primary-600 focus:bg-white focus:outline-none"
             />
-            <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
           </div>
 
           {/* Sort Dropdown */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-end gap-3">
             <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
               <ArrowUpDown className="h-3.5 w-3.5" />
               <span>Sort:</span>
@@ -100,9 +100,36 @@ function ShopContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Sidebar: Category Filters */}
-          <aside className="lg:col-span-3 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm space-y-4">
+        {/* Mobile Category Horizontal Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 lg:hidden no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory('')}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+              !selectedCategory
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+            }`}
+          >
+            All ({categories.reduce((acc, c) => acc + (c.product_count || 0), 0)})
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.slug)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+                selectedCategory === cat.slug
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+              }`}
+            >
+              {cat.name} ({cat.product_count || 0})
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+          {/* Left Sidebar: Category Filters (Desktop) */}
+          <aside className="hidden lg:block lg:col-span-3 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
                 <Filter className="h-3.5 w-3.5 text-primary-600" /> Categories

@@ -17,17 +17,17 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-stone-950 text-stone-300 pt-16 pb-12 border-t border-stone-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
+    <footer className="bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-10 sm:pb-12 border-t border-stone-800">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10 pb-10 sm:pb-12 border-b border-stone-800">
           
           {/* Col 1: Brand Info */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="sm:col-span-2 lg:col-span-4 space-y-4">
             <Link href="/" className="flex items-center py-1">
               <img 
                 src="/logo.png" 
                 alt="Ebanzo" 
-                className="h-8 w-auto max-w-[160px] object-contain brightness-0 invert" 
+                className="h-8 w-auto max-w-[150px] object-contain brightness-0 invert" 
               />
             </Link>
             <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
@@ -76,13 +76,13 @@ export default function Footer() {
           </div>
 
           {/* Col 4: Newsletter */}
-          <div className="lg:col-span-4 space-y-3">
+          <div className="sm:col-span-2 lg:col-span-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Get Special Offers</h4>
             <p className="text-xs text-stone-400">
               Subscribe to unlock 10% off your first personalized keepsake order and receive exclusive festival discounts.
             </p>
 
-            <form onSubmit={handleNewsletter} className="flex gap-2">
+            <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 required
@@ -93,7 +93,7 @@ export default function Footer() {
               />
               <button
                 type="submit"
-                className="rounded-xl bg-primary-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-600 transition-colors flex items-center gap-1.5"
+                className="rounded-xl bg-primary-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-600 transition-colors flex items-center justify-center gap-1.5 flex-shrink-0"
               >
                 <span>Join</span>
                 <Send className="h-3 w-3" />
@@ -114,9 +114,9 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar: Copyright & Payment icons */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+        <div className="pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 text-center sm:text-left">
           <p>© {new Date().getFullYear()} Ebanzo (India). All Rights Reserved. Crafted with love for memory keepers.</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
             <span className="rounded bg-stone-900 border border-stone-800 px-2 py-1 text-[10px] text-stone-300 font-bold">UPI</span>
             <span className="rounded bg-stone-900 border border-stone-800 px-2 py-1 text-[10px] text-stone-300 font-bold">RuPay</span>
             <span className="rounded bg-stone-900 border border-stone-800 px-2 py-1 text-[10px] text-stone-300 font-bold">VISA</span>
