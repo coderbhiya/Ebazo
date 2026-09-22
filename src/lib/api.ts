@@ -56,6 +56,7 @@ export interface Product {
   stock: number;
   related?: Product[];
   category_bg_removal?: number; // 1 = auto bg removal enabled for this category
+  product_type?: 'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery';
 }
 
 export interface CustomizationSettings {
@@ -69,6 +70,21 @@ export interface CustomizationSettings {
   textStyle?: 'gold' | 'frosted' | 'dark';
   shape?: string;
   frameImage?: string;
+  printType?: 'single' | 'dual';
+  dualSide?: boolean;
+  frontPhotoUrl?: string;
+  backPhotoUrl?: string;
+  frontArtworkUrl?: string;
+  backArtworkUrl?: string;
+  setOption?: string;
+  multiImages?: {
+    slot: number;
+    name?: string;
+    photoUrl: string;
+    artworkUrl?: string;
+    shape?: string;
+    settings?: Partial<CustomizationSettings>;
+  }[];
 }
 
 export interface CartItem {
@@ -79,8 +95,21 @@ export interface CartItem {
   price: number;
   image: string;
   shape: string;
+  setOption?: string;
+  printType?: 'single' | 'dual';
   customPhotoUrl?: string;
   printReadyArtworkUrl?: string;
+  frontPhotoUrl?: string;
+  backPhotoUrl?: string;
+  frontArtworkUrl?: string;
+  backArtworkUrl?: string;
+  multiImages?: {
+    slot: number;
+    name?: string;
+    photoUrl: string;
+    artworkUrl?: string;
+    shape?: string;
+  }[];
   customizationSettings?: CustomizationSettings;
   customPhotoData?: string;
   customText?: string;
@@ -105,11 +134,21 @@ export interface OrderPayload {
     shape_selected: string;
     custom_photo_url?: string;
     print_ready_artwork_url?: string;
-    customization_json?: string | CustomizationSettings;
+    customization_json?: string | CustomizationSettings | any;
     custom_text?: string;
     quantity: number;
     price: number;
   }[];
+}
+
+export function formatProductTitle(title?: string): string {
+  if (!title) return '';
+  return title
+    .replace(/\\u2014/g, '—')
+    .replace(/\\u002d/g, '-')
+    .replace(/\s*—\s*/g, ' — ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export async function fetchCategories(): Promise<Category[]> {
@@ -135,7 +174,17 @@ export async function fetchProducts(params?: { category?: string; search?: strin
     const res = await fetch(`${API_BASE}/products?${query.toString()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch products');
     const data = await res.json();
-    return data.data || [];
+    const list: Product[] = data.data || [];
+    // MySQL DECIMAL columns come back as JSON strings (e.g. "349.00"), not numbers — coerce here
+    // so every downstream `+`/`.toFixed()` on price/original_price behaves as arithmetic, not
+    // string concatenation (that bug silently produced prices like "349.0049").
+    return list.map(p => ({
+      ...p,
+      title: formatProductTitle(p.title),
+      short_desc: formatProductTitle(p.short_desc),
+      price: Number(p.price),
+      original_price: Number(p.original_price),
+    }));
   } catch (err) {
     console.warn('Products API fetch notice:', err);
     return [];
@@ -147,7 +196,22 @@ export async function fetchProduct(slug: string): Promise<Product | null> {
     const res = await fetch(`${API_BASE}/products/${slug}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.data || null;
+    if (!data.data) return null;
+    const p: Product = data.data;
+    return {
+      ...p,
+      title: formatProductTitle(p.title),
+      short_desc: formatProductTitle(p.short_desc),
+      price: Number(p.price),
+      original_price: Number(p.original_price),
+      related: (p.related || []).map(r => ({
+        ...r,
+        title: formatProductTitle(r.title),
+        short_desc: formatProductTitle(r.short_desc),
+        price: Number(r.price),
+        original_price: Number(r.original_price),
+      })),
+    };
   } catch (err) {
     console.warn('Product detail API fetch notice:', err);
     return null;

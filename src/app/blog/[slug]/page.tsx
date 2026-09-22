@@ -230,7 +230,7 @@ export default function BlogPostReaderPage() {
                 Customize Your Keepsake in Real-Time
               </h3>
               <p className="text-xs text-stone-400 max-w-md">
-                Upload your favourite photograph, pick bespoke laser-cut shapes, and preview before ordering.
+                Upload your favourite photograph, pick bespoke acrylic shapes, and preview before ordering.
               </p>
             </div>
 

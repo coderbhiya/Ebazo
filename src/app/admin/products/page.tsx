@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Package, Plus, Edit, Trash2, Sparkles, 
+import {
+  Package, Plus, Edit, Trash2, Sparkles,
   X, Check, AlertCircle, RefreshCw, Search,
-  Eye, CheckCircle2, Tag, Layers
+  Eye, CheckCircle2, Tag, Layers, Image as ImageIcon
 } from 'lucide-react';
 import { fetchAdminProducts, saveAdminProduct, deleteAdminProduct, AdminProduct } from '@/lib/admin-api';
 
@@ -219,7 +219,13 @@ export default function AdminProductsPage() {
             >
               <div className="space-y-2.5">
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-stone-950 border border-stone-800/60">
-                  <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-stone-700">
+                      <ImageIcon className="h-8 w-8" />
+                    </div>
+                  )}
                   <span className="absolute top-2 left-2 rounded-md bg-stone-950/80 backdrop-blur-sm px-2 py-0.5 text-[9px] font-semibold text-primary-400 uppercase">
                     {p.category_slug}
                   </span>

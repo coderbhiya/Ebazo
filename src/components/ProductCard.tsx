@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Star, Heart, Sparkles, ArrowRight } from 'lucide-react';
-import { Product } from '@/lib/api';
+import { Product, formatProductTitle } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import LiveCustomizerModal from './LiveCustomizerModal';
 
@@ -28,7 +28,7 @@ export default function ProductCard({ product }: Props) {
           <Link href={`/product/${product.slug}`}>
             <img
               src={product.image_url && product.image_url.trim() ? product.image_url : '/frames/photostand/1_nos_a.png'}
-              alt={product.title}
+              alt={formatProductTitle(product.title)}
               className="h-full w-full object-cover group-hover:scale-106 transition-transform duration-500"
             />
           </Link>
@@ -41,10 +41,13 @@ export default function ProductCard({ product }: Props) {
               </span>
             )}
             {product.is_bestseller === 1 && (
-              <span className="rounded-full bg-primary-500 px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
+              <span className="rounded-full bg-primary-600 px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
                 Bestseller
               </span>
             )}
+            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black text-white shadow-xs">
+              FREE SHIP
+            </span>
           </div>
 
           {/* Wishlist Button */}
@@ -60,12 +63,15 @@ export default function ProductCard({ product }: Props) {
             <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-primary-600 text-primary-600' : ''}`} />
           </button>
 
+          {/* Acrylic Gloss Highlight Overlay */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-80" />
+
           {/* Quick Shape Indicator Pill */}
           {product.shapes && product.shapes.length > 0 && (
             <div className="absolute bottom-2.5 left-2.5 right-2.5">
-              <span className="rounded-xl bg-stone-950/75 px-2.5 py-1 text-[10px] font-semibold text-stone-200 backdrop-blur-md flex items-center justify-between">
+              <span className="rounded-xl bg-stone-950/80 px-2.5 py-1 text-[10px] font-semibold text-stone-200 backdrop-blur-md flex items-center justify-between">
                 <span>{product.shapes.length} Shapes Available</span>
-                <span className="text-primary-300">UV Print</span>
+                <span className="text-primary-300 font-bold">1200+ DPI UV</span>
               </span>
             </div>
           )}
@@ -82,12 +88,12 @@ export default function ProductCard({ product }: Props) {
 
             <Link href={`/product/${product.slug}`}>
               <h3 className="text-sm font-bold text-stone-900 line-clamp-1 group-hover:text-primary-600 transition-colors">
-                {product.title}
+                {formatProductTitle(product.title)}
               </h3>
             </Link>
 
             <p className="mt-1 text-xs text-stone-500 line-clamp-2 leading-relaxed">
-              {product.short_desc}
+              {formatProductTitle(product.short_desc)}
             </p>
           </div>
 

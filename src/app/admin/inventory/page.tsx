@@ -193,11 +193,17 @@ export default function AdminInventoryPage() {
                     <tr key={item.id} className="hover:bg-stone-900/50 transition-colors">
                       <td className="py-3.5">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={item.image_url}
-                            alt=""
-                            className="h-10 w-10 rounded-xl object-cover bg-stone-900 border border-stone-800 flex-shrink-0"
-                          />
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt=""
+                              className="h-10 w-10 rounded-xl object-cover bg-stone-900 border border-stone-800 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-xl bg-stone-900 border border-stone-800 flex-shrink-0 flex items-center justify-center text-stone-700">
+                              <Package className="h-4 w-4" />
+                            </div>
+                          )}
                           <div className="max-w-[200px] truncate">
                             <span className="font-bold text-white block truncate">{item.title}</span>
                             <span className="text-[10px] text-stone-500">₹{item.price}</span>

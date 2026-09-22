@@ -63,7 +63,7 @@ function ShopContent() {
               : 'All Personalized Products'}
           </h1>
           <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-stone-600 max-w-xl">
-            Choose your preferred shape and size, upload your favorite picture, and experience true laser-crafted photo gifts.
+            Choose your preferred shape and size, upload your favorite picture, and experience true bespoke acrylic photo gifts.
           </p>
         </div>
 
@@ -179,7 +179,7 @@ function ShopContent() {
                 <Sparkles className="h-6 w-6 text-primary-600 mx-auto mb-1.5" />
                 <h4 className="text-xs font-bold text-stone-900">Custom Shapes & Cuts</h4>
                 <p className="mt-1 text-[10px] text-stone-500">
-                  Every product is customized with Japanese UV ink and laser contouring.
+                  Every product is customized with Japanese UV ink and precision acrylic contouring.
                 </p>
               </div>
             </div>

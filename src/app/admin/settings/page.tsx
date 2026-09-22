@@ -17,7 +17,7 @@ import { HeroSlide } from '@/lib/api';
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
     tag: 'Trending • Pan-India Favorite',
-    title: 'Laser Cut Acrylic Fridge Magnets',
+    title: 'Bespoke Acrylic Fridge Magnets',
     subtitle: 'From wavy artistic contours to floral and geometric shapes. Printed with Japanese fade-resistant UV ink technology.',
     price: 'Special Combo from ₹199',
     price_text: 'Special Combo from ₹199',
@@ -31,7 +31,7 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   {
     tag: 'Artisan Caricature Keepsakes',
     title: 'Custom Carrycature Portrait Stands',
-    subtitle: 'Handcrafted fun caricatures on crystal-clear acrylic with laser-cut edges and natural wood base.',
+    subtitle: 'Handcrafted fun caricatures on crystal-clear acrylic with smooth polished edges and natural wood base.',
     price: 'Starting at ₹449',
     price_text: 'Starting at ₹449',
     image: '/banners/hero_carrycature.jpg',
@@ -115,11 +115,16 @@ function AdminSettingsContent() {
   const [slideGradient, setSlideGradient] = useState('from-primary-500/20 via-primary-500/10 to-transparent');
 
   // Store Configuration Settings
-  const [freeShippingThreshold, setFreeShippingThreshold] = useState('499');
-  const [shippingFee, setShippingFee] = useState('49');
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState('0');
+  const [shippingFee, setShippingFee] = useState('0');
   const [supportPhone, setSupportPhone] = useState('+91 99999 88888');
   const [supportEmail, setSupportEmail] = useState('hello@ebanzo.com');
   const [storeGst, setStoreGst] = useState('07AAAAA0000A1Z5');
+
+  // Customization pricing rules (used by Fridge Magnet sets & Dual-Side printing)
+  const [magnetSet6Multiplier, setMagnetSet6Multiplier] = useState('1.4');
+  const [magnetSet8Multiplier, setMagnetSet8Multiplier] = useState('1.8');
+  const [dualSideSurcharge, setDualSideSurcharge] = useState('49');
 
   // Load Settings & Users on mount
   useEffect(() => {
@@ -143,8 +148,11 @@ function AdminSettingsContent() {
         if (s.hero_slider_interval) {
           setHeroInterval(String(s.hero_slider_interval));
         }
-        if (s.free_shipping_threshold) setFreeShippingThreshold(String(s.free_shipping_threshold));
-        if (s.shipping_fee) setShippingFee(String(s.shipping_fee));
+        if (s.free_shipping_threshold !== undefined) setFreeShippingThreshold(String(s.free_shipping_threshold));
+        if (s.shipping_fee !== undefined) setShippingFee(String(s.shipping_fee));
+        if (s.magnet_set6_multiplier) setMagnetSet6Multiplier(String(s.magnet_set6_multiplier));
+        if (s.magnet_set8_multiplier) setMagnetSet8Multiplier(String(s.magnet_set8_multiplier));
+        if (s.dual_side_surcharge !== undefined) setDualSideSurcharge(String(s.dual_side_surcharge));
         if (s.support_phone) setSupportPhone(s.support_phone);
         if (s.support_email) setSupportEmail(s.support_email);
         if (s.store_gst) setStoreGst(s.store_gst);
@@ -297,6 +305,9 @@ function AdminSettingsContent() {
       await saveAdminSettings({
         free_shipping_threshold: freeShippingThreshold,
         shipping_fee: shippingFee,
+        magnet_set6_multiplier: magnetSet6Multiplier,
+        magnet_set8_multiplier: magnetSet8Multiplier,
+        dual_side_surcharge: dualSideSurcharge,
         support_phone: supportPhone,
         support_email: supportEmail,
         store_gst: storeGst,
@@ -615,6 +626,7 @@ function AdminSettingsContent() {
                 onChange={(e) => setFreeShippingThreshold(e.target.value)}
                 className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
               />
+              <p className="mt-1 text-[10px] text-stone-500">0 = ignored (shipping fee below decides everything)</p>
             </div>
 
             <div>
@@ -625,6 +637,47 @@ function AdminSettingsContent() {
                 onChange={(e) => setShippingFee(e.target.value)}
                 className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
               />
+              <p className="mt-1 text-[10px] text-stone-500">0 = 100% free shipping on every order, regardless of cart minimum</p>
+            </div>
+
+            <div className="sm:col-span-2 pt-2 border-t border-stone-800">
+              <h4 className="font-bold text-white text-xs mb-0.5">Customization Pricing Rules</h4>
+              <p className="text-[10px] text-stone-500 mb-3">Controls surcharge for Fridge Magnet packs and Dual-Side printing across the whole site — no code changes needed to adjust these.</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Fridge Magnet — Set of 6 Price Multiplier</label>
+              <input
+                type="number"
+                step="0.1"
+                value={magnetSet6Multiplier}
+                onChange={(e) => setMagnetSet6Multiplier(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">e.g. 1.4 = Set of 6 costs 1.4× the base (Set of 4) price</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Fridge Magnet — Set of 8 Price Multiplier</label>
+              <input
+                type="number"
+                step="0.1"
+                value={magnetSet8Multiplier}
+                onChange={(e) => setMagnetSet8Multiplier(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">e.g. 1.8 = Set of 8 costs 1.8× the base (Set of 4) price</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Dual-Side Print Surcharge (₹)</label>
+              <input
+                type="number"
+                value={dualSideSurcharge}
+                onChange={(e) => setDualSideSurcharge(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">Added to Car Stand / Car Hanging / Keychain price when a customer picks Dual-Side printing</p>
             </div>
 
             <div>

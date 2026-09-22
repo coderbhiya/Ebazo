@@ -34,6 +34,7 @@ export default function AdminProductNewPage() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [categorySlug, setCategorySlug] = useState('fridge-magnet');
+  const [productType, setProductType] = useState<'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery'>('standard');
   const [price, setPrice] = useState('199');
   const [originalPrice, setOriginalPrice] = useState('299');
   const [stock, setStock] = useState('100');
@@ -134,6 +135,7 @@ export default function AdminProductNewPage() {
         title: title.trim(),
         slug: slug.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         category_slug: categorySlug,
+        product_type: productType,
         price: parseFloat(price),
         original_price: parseFloat(originalPrice) || parseFloat(price),
         stock: parseInt(stock) || 0,
@@ -565,6 +567,25 @@ export default function AdminProductNewPage() {
                 </div>
               </div>
             )}
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-400 mb-1.5">
+                Customization Type
+              </label>
+              <select
+                value={productType}
+                onChange={(e) => setProductType(e.target.value as typeof productType)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-xs text-white focus:outline-none focus:border-primary-500"
+              >
+                <option value="standard">Standard (single photo upload)</option>
+                <option value="fridge_magnet">Fridge Magnet Set (Set of 4/6/8, per-magnet photos)</option>
+                <option value="dual_side">Dual-Side Print (Front & Back, e.g. Car Stand/Hanging/Keychain)</option>
+                <option value="mini_gallery">Mini Gallery Collage (multi-frame)</option>
+              </select>
+              <p className="mt-1.5 text-[10px] text-stone-500">
+                Controls which customizer experience shows on the product page — set this instead of relying on the product title/category name.
+              </p>
+            </div>
           </div>
 
           {/* Featured Image Card */}

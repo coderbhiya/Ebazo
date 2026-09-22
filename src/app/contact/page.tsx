@@ -75,7 +75,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-bold text-stone-900">Ebanzo Precision Studios</h4>
                     <p className="text-stone-500 mt-0.5 leading-relaxed">
-                      Ebanzo Printing & Laser Cut Facility, Industrial Estate, Pan-India Dispatch Center.
+                      Ebanzo Printing & Acrylic Craft Facility, Industrial Estate, Pan-India Dispatch Center.
                     </p>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export default function ContactPage() {
               </div>
               <h3 className="text-base font-extrabold text-white">Bulk Orders over 50+ Units?</h3>
               <p className="mt-1 text-xs text-secondary-200 leading-relaxed">
-                Enjoy tiered volume pricing, custom branded packaging boxes, and dedicated laser engraving assistance for employee appreciation and weddings.
+                Enjoy tiered volume pricing, custom branded packaging boxes, and dedicated custom engraving assistance for employee appreciation and weddings.
               </p>
             </div>
           </div>

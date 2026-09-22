@@ -101,6 +101,7 @@ export interface AdminProduct {
   is_bestseller: number;
   is_featured: number;
   stock: number;
+  product_type?: 'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery';
   created_at?: string;
 }
 

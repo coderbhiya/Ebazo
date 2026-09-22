@@ -23,7 +23,7 @@ export default function FeaturedCategories({ categories }: Props) {
               Explore Our Personalized Categories
             </h2>
             <p className="mt-2 text-sm text-stone-600 max-w-xl">
-              Every item is tailored with your choice of image, laser cut with millimeter precision, and cured with high-density UV print.
+              Every item is tailored with your choice of image, crafted with crystal-clear precision, and cured with high-density Japanese UV print.
             </p>
           </div>
           <Link

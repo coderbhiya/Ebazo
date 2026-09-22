@@ -86,7 +86,7 @@ export default function Navbar() {
             <div className="flex items-center gap-1.5 sm:gap-2 truncate">
               <span className="flex h-1.5 w-1.5 rounded-full bg-primary-400 animate-pulse flex-shrink-0" />
               <span className="truncate">
-                ✨ <strong>FREE Express Pan-India Delivery</strong> over ₹499 • Use code <strong>EBANZO10</strong>
+                ✨ <strong>100% FREE Pan-India Express Delivery on All Orders</strong> • Use code <strong>EBANZO10</strong> for 10% OFF
               </span>
             </div>
             <div className="hidden items-center gap-6 sm:flex flex-shrink-0">

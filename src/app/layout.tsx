@@ -17,7 +17,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Ebanzo | Premium Personalized Photo Gifting & Laser Cut Keepsakes',
+  title: 'Ebanzo | Premium Personalized Photo Gifting & Acrylic Keepsakes',
   description: 'Custom acrylic fridge magnets, personalized keychains, car charms, and tabletop photo stands. Fused with Japanese UV print technology and delivered across India.',
   keywords: 'personalized photo gifts, custom fridge magnets, acrylic keychains, car hanging charm, tabletop photo stand, ebanzo gifts india',
 };

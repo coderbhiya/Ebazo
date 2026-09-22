@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem } from '@/lib/api';
+import { CartItem, fetchPublicSettings } from '@/lib/api';
 
 interface CartContextType {
   cart: CartItem[];
@@ -28,6 +28,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Admin-configurable shipping (Admin > Settings > Shipping). Defaults to free shipping
+  // until settings load, so the storefront never briefly shows a fee that isn't intended.
+  const [shippingRule, setShippingRule] = useState({ fee: 0, freeAbove: 0 });
+
+  // Load admin-configured shipping settings
+  useEffect(() => {
+    let cancelled = false;
+    fetchPublicSettings()
+      .then((s) => {
+        if (cancelled) return;
+        const fee = Number(s.shipping_fee ?? 0) || 0;
+        const freeAbove = Number(s.free_shipping_threshold ?? 0) || 0;
+        setShippingRule({ fee, freeAbove });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -117,7 +136,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const isInWishlist = (productId: number) => wishlist.includes(productId);
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const shippingFee = subtotal > 499 || subtotal === 0 ? 0 : 49;
+  const shippingFee =
+    subtotal === 0 || shippingRule.fee === 0 || (shippingRule.freeAbove > 0 && subtotal >= shippingRule.freeAbove)
+      ? 0
+      : shippingRule.fee;
   const total = subtotal + shippingFee;
 
   return (

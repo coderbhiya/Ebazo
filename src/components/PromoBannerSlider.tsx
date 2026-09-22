@@ -14,7 +14,7 @@ interface PromoSlide {
 const PROMO_SLIDES: PromoSlide[] = [
   {
     id: 'promo-1',
-    title: 'Celebrate Love with Laser-Cut Keepsakes - Flat 15% OFF',
+    title: 'Celebrate Love with Bespoke Acrylic Keepsakes - Flat 15% OFF',
     image: '/banners/promo_couple_love.jpg',
     link: '/shop?category=carrycature',
   },

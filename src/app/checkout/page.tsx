@@ -79,7 +79,16 @@ export default function CheckoutPage() {
           product_title: item.title,
           product_image: item.image,
           shape_selected: item.shape,
-          custom_photo_url: item.customPhotoUrl,
+          custom_photo_url: item.frontPhotoUrl || item.customPhotoUrl,
+          print_ready_artwork_url: item.frontArtworkUrl || item.printReadyArtworkUrl,
+          customization_json: item.customizationSettings || {
+            shape: item.shape,
+            setOption: item.setOption,
+            printType: item.printType,
+            frontPhotoUrl: item.frontPhotoUrl,
+            backPhotoUrl: item.backPhotoUrl,
+            multiImages: item.multiImages,
+          },
           custom_text: item.customText,
           quantity: item.quantity,
           price: item.price,
@@ -111,7 +120,7 @@ export default function CheckoutPage() {
           <span className="text-xs font-bold uppercase tracking-widest text-emerald-600">Order Confirmed</span>
           <h1 className="mt-1 text-2xl font-black text-stone-900">Thank You for Your Order!</h1>
           <p className="mt-2 text-xs text-stone-600">
-            We have received your customization files. Our precision UV printing & laser contour cutting studio is preparing your keepsake!
+            We have received your customization files. Our high-definition UV printing and acrylic contour craft studio is preparing your bespoke keepsake!
           </p>
 
           <div className="my-6 rounded-2xl bg-stone-50 p-4 border border-stone-200 text-left space-y-2 text-xs">
@@ -299,7 +308,7 @@ export default function CheckoutPage() {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Special laser engraving requests, delivery instructions"
+                  placeholder="Special customization requests, delivery instructions"
                   className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
               </div>
@@ -379,11 +388,27 @@ export default function CheckoutPage() {
             <div className="divide-y divide-stone-100 max-h-80 overflow-y-auto pr-1">
               {cart.map((item) => (
                 <div key={item.id} className="py-3 flex gap-3">
-                  <img
-                    src={item.customPhotoUrl || item.image}
-                    alt={item.title}
-                    className="h-14 w-14 rounded-xl object-cover border border-stone-200"
-                  />
+                  {item.multiImages && item.multiImages.length > 0 ? (
+                    <div className="grid grid-cols-2 grid-rows-2 gap-px h-14 w-14 rounded-xl overflow-hidden border border-stone-200 bg-stone-200 flex-shrink-0">
+                      {Array.from({ length: 4 }, (_, i) => item.multiImages![i]).map((img, i) => (
+                        <div key={i} className="relative bg-stone-100 overflow-hidden">
+                          {img ? (
+                            <img
+                              src={img.artworkUrl || img.photoUrl}
+                              alt={`${item.title} ${i + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <img
+                      src={item.frontArtworkUrl || item.printReadyArtworkUrl || item.customPhotoUrl || item.image}
+                      alt={item.title}
+                      className="h-14 w-14 rounded-xl object-cover border border-stone-200 flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0 text-xs">
                     <h4 className="font-bold text-stone-900 truncate">{item.title}</h4>
                     <p className="text-stone-500 text-[11px]">Shape: {item.shape}</p>
@@ -418,7 +443,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary-500 py-4 text-sm font-black text-white shadow-xl shadow-primary-950/20 hover:bg-primary-600 transition-all disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-500 py-3 text-sm font-bold text-white shadow-md shadow-primary-500/20 hover:bg-primary-600 hover:shadow-lg transition-all disabled:opacity-60"
             >
               {isSubmitting ? (
                 <>
