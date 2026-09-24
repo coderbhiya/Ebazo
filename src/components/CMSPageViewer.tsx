@@ -6,7 +6,8 @@ import {
   FileText, ShieldCheck, ChevronRight, MessageCircle, 
   Sparkles, Clock, ShoppingBag 
 } from 'lucide-react';
-import { fetchPageBySlug, fetchPages, CMSPage } from '@/lib/api';
+import { fetchPageBySlug, fetchPages, CMSPage, whatsappLink } from '@/lib/api';
+import { useSiteSettings } from '@/lib/site-settings';
 
 interface CMSPageViewerProps {
   slug: string;
@@ -14,6 +15,7 @@ interface CMSPageViewerProps {
 }
 
 export default function CMSPageViewer({ slug, fallbackTitle }: CMSPageViewerProps) {
+  const site = useSiteSettings(); // support WhatsApp & hours from Admin > Homepage
   const [page, setPage] = useState<CMSPage | null>(null);
   const [allPages, setAllPages] = useState<CMSPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,12 +199,12 @@ export default function CMSPageViewer({ slug, fallbackTitle }: CMSPageViewerProp
               <div>
                 <h4 className="font-bold text-sm text-white">Have Questions About This Policy?</h4>
                 <p className="text-xs text-emerald-200/80 mt-1 leading-relaxed">
-                  Our customer care team is available on WhatsApp Mon–Sat (9:30 AM to 8:00 PM IST) to assist you.
+                  Our customer care team is available on WhatsApp ({site.support_hours}) to assist you.
                 </p>
               </div>
 
               <a
-                href="https://wa.me/919999988888?text=Hi%20Ebanzo%20Team,%20I%20have%20a%20question%20regarding%20store%20policies."
+                href={whatsappLink(site.whatsapp_number, 'Hi Ebanzo Team, I have a question regarding store policies.')}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"

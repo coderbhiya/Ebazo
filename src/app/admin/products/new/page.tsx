@@ -14,7 +14,12 @@ import {
   fetchAdminCategories, 
   AdminProduct 
 } from '@/lib/admin-api';
-import { Category, uploadCustomPhoto } from '@/lib/api';
+import { Category, ProductAttribute, uploadCustomPhoto } from '@/lib/api';
+import ProductVariationsEditor, {
+  EditorVariation,
+  toEditorVariations,
+  validateVariations,
+} from '@/components/admin/ProductVariationsEditor';
 
 const DEFAULT_SHAPES_SUGGESTIONS = [
   'Round', 'Square', 'Heart', 'Hexagon', 'Oval', 
@@ -50,6 +55,8 @@ export default function AdminProductNewPage() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestseller, setIsBestseller] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [variations, setVariations] = useState<EditorVariation[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,6 +136,12 @@ export default function AdminProductNewPage() {
       return;
     }
 
+    const variationError = validateVariations(attributes, variations);
+    if (variationError) {
+      showToast(variationError, 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Partial<AdminProduct> = {
@@ -148,9 +161,15 @@ export default function AdminProductNewPage() {
         gallery: galleryUrls,
         is_featured: isFeatured ? 1 : 0,
         is_bestseller: isBestseller ? 1 : 0,
+        attributes,
+        variations,
       };
 
       const res = await saveAdminProduct(payload);
+      if (res?.status !== 'success') {
+        showToast(res?.message || 'Failed to create product', 'error');
+        return;
+      }
       showToast('Product created successfully!');
       setTimeout(() => {
         if (res && res.id) {
@@ -358,6 +377,16 @@ export default function AdminProductNewPage() {
               </div>
             </div>
           </div>
+
+          <ProductVariationsEditor
+            attributes={attributes}
+            variations={variations}
+            onAttributesChange={setAttributes}
+            onVariationsChange={setVariations}
+            basePrice={parseFloat(price) || 0}
+            baseOriginalPrice={parseFloat(originalPrice) || 0}
+            baseStock={parseInt(stock) || 0}
+          />
 
           {/* TAGS & CUTOUT SHAPES CARD */}
           <div className="rounded-2xl border border-stone-800 bg-[#121318] p-5 space-y-4">

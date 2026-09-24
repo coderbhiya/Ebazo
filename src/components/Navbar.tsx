@@ -10,9 +10,15 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { fetchProducts, Product, Category, fetchCategories } from '@/lib/api';
+import { fetchProducts, Product, Category, fetchCategories, whatsappLink } from '@/lib/api';
+import { useSiteSettings } from '@/lib/site-settings';
 
 export default function Navbar() {
+  // Announcement, support links and shipping hint from Admin > Homepage / Settings
+  const site = useSiteSettings();
+  const shipFee = Number(site.shipping_fee ?? 0) || 0;
+  const freeAbove = Number(site.free_shipping_threshold ?? 0) || 0;
+  const freeDeliveryLabel = shipFee <= 0 ? 'Free Delivery' : freeAbove > 0 ? `Free Delivery >₹${freeAbove}` : `Delivery ₹${shipFee}`;
   const router = useRouter();
   const { cart, wishlist, setIsCartOpen } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
@@ -86,7 +92,8 @@ export default function Navbar() {
             <div className="flex items-center gap-1.5 sm:gap-2 truncate">
               <span className="flex h-1.5 w-1.5 rounded-full bg-primary-400 animate-pulse flex-shrink-0" />
               <span className="truncate">
-                ✨ <strong>100% FREE Pan-India Express Delivery on All Orders</strong> • Use code <strong>EBANZO10</strong> for 10% OFF
+                {/* Admin > Homepage > Announcement bar */}
+                <strong>{site.announcement_text}</strong>
               </span>
             </div>
             <div className="hidden items-center gap-6 sm:flex flex-shrink-0">
@@ -97,7 +104,7 @@ export default function Navbar() {
               <span className="text-primary-400">•</span>
               <span className="flex items-center gap-1 text-primary-200">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary-300" />
-                <span>99.8% Print Precision Guarantee</span>
+                <span>{site.announcement_badge}</span>
               </span>
             </div>
           </div>
@@ -277,27 +284,19 @@ export default function Navbar() {
             <Link href="/shop" className="hover:text-primary-600 transition-colors whitespace-nowrap">
               All Products
             </Link>
-            <Link href="/shop?category=fridge-magnet" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Fridge Magnets
-            </Link>
-            <Link href="/shop?category=key-chains" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Keychains
-            </Link>
-            <Link href="/shop?category=car-hanging" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Car Hangings
-            </Link>
-            <Link href="/shop?category=car-stand" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Car Dashboard Stands
-            </Link>
-            <Link href="/shop?category=mini-gallary" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Mini Galleries
-            </Link>
-            <Link href="/shop?category=photostand" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Acrylic Photo Stands
-            </Link>
-            <Link href="/shop?category=wallet-card" className="hover:text-primary-600 transition-colors whitespace-nowrap">
-              Wallet Cards
-            </Link>
+            {/* From Admin > Categories (top level, with products) — the old hardcoded list linked
+                to empty Keychain/Wallet Card pages and missed Carrycature and Wall Clocks */}
+            {categories
+              .filter((cat) => !cat.parent_id && (cat.product_count ?? 1) > 0)
+              .map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/shop?category=${cat.slug}`}
+                  className="hover:text-primary-600 transition-colors whitespace-nowrap"
+                >
+                  {cat.name}
+                </Link>
+              ))}
             <Link href="/blog" className="hover:text-primary-600 transition-colors whitespace-nowrap font-bold text-amber-700">
               Journal & Guides
             </Link>
@@ -419,7 +418,8 @@ export default function Navbar() {
               <ChevronRight className="h-4 w-4 text-stone-400" />
             </Link>
 
-            {categories.map((cat) => (
+            {/* Empty categories would only lead to a "No products found" page */}
+            {categories.filter((cat) => (cat.product_count ?? 1) > 0).map((cat) => (
               <Link
                 key={cat.id}
                 href={`/shop?category=${cat.slug}`}
@@ -488,16 +488,16 @@ export default function Navbar() {
           <div className="flex items-center justify-between text-[11px] text-stone-500 font-semibold">
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              <span>99.8% UV Fidelity</span>
+              <span>{site.announcement_badge}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Truck className="h-3.5 w-3.5 text-primary-600" />
-              <span>Free Delivery &gt;₹499</span>
+              <span>{freeDeliveryLabel}</span>
             </div>
           </div>
 
           <a
-            href="https://wa.me/919999988888"
+            href={whatsappLink(site.whatsapp_number, site.whatsapp_message)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"

@@ -5,9 +5,11 @@ import {
   Mail, Phone, MapPin, MessageCircle, Send, 
   CheckCircle2, Sparkles, Building2, Gift, ShieldCheck 
 } from 'lucide-react';
-import { submitInquiry } from '@/lib/api';
+import { submitInquiry, whatsappLink } from '@/lib/api';
+import { useSiteSettings } from '@/lib/site-settings';
 
 export default function ContactPage() {
+  const site = useSiteSettings(); // Admin > Homepage > Contact details
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -75,7 +77,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-bold text-stone-900">Ebanzo Precision Studios</h4>
                     <p className="text-stone-500 mt-0.5 leading-relaxed">
-                      Ebanzo Printing & Acrylic Craft Facility, Industrial Estate, Pan-India Dispatch Center.
+                      {site.store_address}
                     </p>
                   </div>
                 </div>
@@ -86,7 +88,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-stone-900">Email Inquiries</h4>
-                    <p className="text-stone-500">support@ebanzo.com • orders@ebanzo.com</p>
+                    <p className="text-stone-500">{site.support_email}{site.support_phone ? ` • ${site.support_phone}` : ''}</p>
                   </div>
                 </div>
 
@@ -96,14 +98,14 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-stone-900">WhatsApp Instant Support</h4>
-                    <p className="text-stone-500">Mon - Sat: 9:30 AM to 8:00 PM IST</p>
+                    <p className="text-stone-500">{site.support_hours}</p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-stone-100">
                 <a
-                  href="https://wa.me/919876543210?text=Hi%20Ebanzo,%20I%20have%20an%20inquiry%20regarding%20bulk%20personalized%20gifting"
+                  href={whatsappLink(site.whatsapp_number, 'Hi Ebanzo, I have an inquiry regarding bulk personalized gifting')}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-secondary-900 py-3 text-xs font-bold text-white hover:bg-primary-600 transition-colors shadow"

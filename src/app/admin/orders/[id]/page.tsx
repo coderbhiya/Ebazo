@@ -14,6 +14,7 @@ import {
   fetchAdminOrder, updateOrderStatus, Order,
   createShiprocketShipment 
 } from '@/lib/admin-api';
+import OrderItemPrintFiles from '@/components/admin/OrderItemPrintFiles';
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -321,6 +322,20 @@ export default function OrderDetailsPage() {
                             </span>
                           </div>
 
+                          {/* Purchased variation (recorded server-side at checkout) */}
+                          {customSpecs?.variation && Object.keys(customSpecs.variation).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              {Object.entries(customSpecs.variation as Record<string, string>).map(([k, v]) => (
+                                <span key={k} className="rounded-md bg-sky-950/80 border border-sky-500/30 px-2 py-0.5 text-[11px] font-bold text-sky-300">
+                                  {k}: {v || 'Any'}
+                                </span>
+                              ))}
+                              {customSpecs.variationSku && (
+                                <span className="text-[11px] font-mono text-stone-400">SKU {customSpecs.variationSku}</span>
+                              )}
+                            </div>
+                          )}
+
                           {item.custom_text && (
                             <div className="rounded bg-stone-900/90 border border-stone-800 px-2.5 py-1 text-xs text-amber-300 italic font-medium inline-block mt-1">
                               Laser Inscription: &ldquo;{item.custom_text}&rdquo;
@@ -329,48 +344,10 @@ export default function OrderDetailsPage() {
                         </div>
                       </div>
 
-                      {/* Download Buttons */}
-                      <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
-                        {item.print_ready_artwork_url && (
-                          <a
-                            href={item.print_ready_artwork_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            download
-                            className="flex-1 sm:flex-none rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500 flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            <span>Print Proof (1200 DPI)</span>
-                          </a>
-                        )}
-
-                        {item.custom_photo_url && (
-                          <a
-                            href={item.custom_photo_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            download
-                            className="flex-1 sm:flex-none rounded-lg bg-stone-800 border border-stone-700 px-3.5 py-2 text-xs font-bold text-stone-200 hover:text-white hover:bg-stone-700 flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            <span>Original Photo</span>
-                          </a>
-                        )}
-
-                        {!item.print_ready_artwork_url && !item.custom_photo_url && (
-                          <a
-                            href={item.product_image}
-                            target="_blank"
-                            rel="noreferrer"
-                            download
-                            className="flex-1 sm:flex-none rounded-lg bg-stone-800 border border-stone-700 px-3.5 py-2 text-xs font-bold text-stone-200 hover:text-white flex items-center justify-center gap-1.5"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            <span>Mockup Image</span>
-                          </a>
-                        )}
-                      </div>
                     </div>
+
+                    {/* Everything production needs, per photo: cut-out print file, frame, original */}
+                    <OrderItemPrintFiles item={item} specs={customSpecs} />
 
                     {/* Laser / Customizer Parameters */}
                     {customSpecs && (

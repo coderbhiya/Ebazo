@@ -6,10 +6,12 @@ import {
   Sparkles, Sliders, Image as ImageIcon, Loader2,
   Move, Type, RefreshCw, FileText, Wand2,
   FlipHorizontal, FlipVertical, Focus, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Layers, Copy, Eye, Grid
+  Layers, Copy, Eye, Grid, Pencil
 } from 'lucide-react';
-import { Product, uploadCustomPhoto, uploadPrintArtwork, CustomizationSettings } from '@/lib/api';
+import { Product, ProductVariation, uploadCustomPhoto, uploadPrintArtwork, CustomizationSettings } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
+import ProductPreviewMockup, { PreviewArtwork, trimTransparent } from '@/components/ProductPreviewMockup';
+import { frameLabel } from '@/lib/frames';
 
 interface Props {
   product: Product;
@@ -19,6 +21,14 @@ interface Props {
   initialSetOption?: 'Set of 4' | 'Set of 6' | 'Set of 8';
   initialPrintType?: 'single' | 'dual';
   customPrice?: number;
+  variation?: ProductVariation | null;
+  variationLabel?: string;
+  variationSelection?: Record<string, string>;
+  // Verified frame for the chosen shape, and all of the product's frames (see lib/frames.ts)
+  frameUrl?: string;
+  frameOptions?: { label: string; url: string }[];
+  // Mini gallery: number of frames the customer chose on the product page
+  galleryFrameCount?: number;
 }
 
 interface MagnetSlotState {
@@ -142,7 +152,8 @@ async function generatePrintArtworkBlob(
   ctx.clearRect(0, 0, size, size);
 
   if (maskImg) {
-    const padding = 30;
+    // No padding: the editor fits the mask edge-to-edge in its box, so the print must too
+    const padding = 0;
     const avail = size - padding * 2;
     const maskAspect = maskImg.width / maskImg.height;
     let maskW = avail;
@@ -191,7 +202,9 @@ async function generatePrintArtworkBlob(
     ctx.restore();
   }
 
-  // Subtle gloss sheen for 3D acrylic proof
+  // Subtle gloss sheen for 3D acrylic proof — source-atop keeps it (and the text plate below)
+  // inside the frame shape, matching the masked editor preview
+  ctx.globalCompositeOperation = 'source-atop';
   const gradient = ctx.createLinearGradient(0, 0, size, size);
   gradient.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
   gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.0)');
@@ -244,6 +257,7 @@ async function generatePrintArtworkBlob(
     ctx.fillText(text, size / 2, badgeY + badgeH / 2);
     ctx.restore();
   }
+  ctx.globalCompositeOperation = 'source-over';
 
   return canvas.toDataURL('image/png', 0.95);
 }
@@ -255,7 +269,13 @@ export default function LiveCustomizerModal({
   selectedShape: initialShape,
   initialSetOption = 'Set of 4',
   initialPrintType = 'single',
-  customPrice
+  customPrice,
+  variation,
+  variationLabel,
+  variationSelection,
+  frameUrl: selectedFrameUrl,
+  frameOptions = [],
+  galleryFrameCount = 4,
 }: Props) {
   const { addToCart } = useCart();
   const effectivePrice = customPrice || product.price;
@@ -301,7 +321,12 @@ export default function LiveCustomizerModal({
   const bgRemovalEnabled = isTransparentAcrylicFrame && !isFridgeMagnet && !isDualSideEligible && !isMiniGallery;
 
   // State: Standard / Single Photo
-  const [currentShape, setCurrentShape] = useState(initialShape || product.shapes?.[0] || 'Standard');
+  // Without a shape from the product page (e.g. opened from a product card) the product's own
+  // frame is used, so the recorded shape must name that frame — not shapes[0], which could be
+  // a different cutout.
+  const [currentShape, setCurrentShape] = useState(
+    initialShape || (product.image_url ? frameLabel(product.image_url) : '') || product.shapes?.[0] || 'Standard'
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -349,18 +374,6 @@ export default function LiveCustomizerModal({
   const [activeMagnetIdx, setActiveMagnetIdx] = useState(0);
   const [magnetViewMode, setMagnetViewMode] = useState<'single' | 'grid'>('single');
   
-  // Available magnet frames/shapes
-  const magnetFrames = [
-    '/frames/fridge-magnet/1_nos_a.png',
-    '/frames/fridge-magnet/1_nos_b.png',
-    '/frames/fridge-magnet/1_nos_c.png',
-    '/frames/fridge-magnet/1_nos_d.png',
-    '/frames/fridge-magnet/1_nos_e.png',
-    '/frames/fridge-magnet/1_nos_f.png',
-    '/frames/fridge-magnet/1_nos_g.png',
-    '/frames/fridge-magnet/1_nos_h.png',
-  ];
-
   const [magnetSlots, setMagnetSlots] = useState<MagnetSlotState[]>(() => 
     Array.from({ length: 8 }, (_, idx) => ({
       slot: idx + 1,
@@ -373,15 +386,17 @@ export default function LiveCustomizerModal({
       posY: 0,
       flipH: false,
       flipV: false,
-      shape: `Shape ${idx + 1}`,
-      frameUrl: magnetFrames[idx % magnetFrames.length]
+      // Empty = use the shape the customer chose on the product page. (Previously each slot was
+      // hard-wired to frames a, b, c... regardless of what the customer picked.)
+      shape: '',
+      frameUrl: '',
     }))
   );
 
-  // State: Mini Gallery Multi-Frame Collage (4 slots)
+  // State: Mini Gallery Multi-Frame Collage (up to 12 slots; `galleryFrameCount` are in use)
   const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
   const [miniGallerySlots, setMiniGallerySlots] = useState<MiniGallerySlotState[]>(() =>
-    Array.from({ length: 4 }, (_, idx) => ({
+    Array.from({ length: 12 }, (_, idx) => ({
       slot: idx + 1,
       imageFile: null,
       imagePreviewUrl: null,
@@ -395,6 +410,19 @@ export default function LiveCustomizerModal({
   );
 
   const [galleryViewMode, setGalleryViewMode] = useState<'single' | 'grid'>('single');
+  const activeGallerySlots = miniGallerySlots.slice(0, galleryFrameCount);
+  // If the customer picked fewer frames than the selected slot, fall back to the first one
+  useEffect(() => {
+    if (activeGalleryIdx >= galleryFrameCount) setActiveGalleryIdx(0);
+  }, [galleryFrameCount]);
+
+  // Shown in the customizer when a photo / print file couldn't be saved (nothing is added to cart)
+  const [saveError, setSaveError] = useState('');
+
+  // Final product preview (composite of the user's photo inside the frame, shown in a mockup)
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [previewArtworks, setPreviewArtworks] = useState<PreviewArtwork[]>([]);
 
   // Upload and gesture refs
   const [isUploading, setIsUploading] = useState(false);
@@ -425,18 +453,23 @@ export default function LiveCustomizerModal({
     if (initialPrintType) setPrintType(initialPrintType);
   }, [initialShape, initialSetOption, initialPrintType, isOpen]);
 
-  // Frame URL lookup
-  const getFrameUrlForShape = (shape: string) => {
-    if (product.gallery && product.gallery.length > 0) {
-      const shapeIdx = product.shapes?.indexOf(shape);
-      if (shapeIdx !== undefined && shapeIdx >= 0 && product.gallery[shapeIdx]) {
-        return product.gallery[shapeIdx];
-      }
-    }
-    return product.image_url || '/frames/photostand/1_nos_a.png';
-  };
+  useEffect(() => {
+    if (!isOpen) setIsPreviewMode(false);
+  }, [isOpen]);
 
-  const activeFrameUrl = getFrameUrlForShape(currentShape);
+  // A variation's own cutout (Admin > variation > Customizer frame) takes priority, then the
+  // verified frame of the shape chosen on the product page, then the product's own frame.
+  const activeFrameUrl = variation?.frame_url || selectedFrameUrl || product.image_url || '/frames/photostand/1_nos_a.png';
+  const slotFrame = (s: MagnetSlotState) => s.frameUrl || activeFrameUrl;
+  const slotShape = (s: MagnetSlotState) => s.shape || variationLabel || currentShape;
+  // Added to every cart item so the order records (and the server prices) the chosen variation
+  // ...and the frame used, so production knows exactly which cutout to print
+  const variationFields = {
+    frameImage: activeFrameUrl,
+    ...(variation?.id
+      ? { variationId: variation.id, variationLabel, variationSelection, shape: variationLabel || currentShape }
+      : {}),
+  };
 
   // Handle Standard Single-File Upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -710,6 +743,30 @@ export default function LiveCustomizerModal({
     } catch (_) {}
   };
 
+  // Apply a zoom/rotation change to whichever photo is currently being edited
+  const updateActiveTransform = (patch: { zoom?: number; rotation?: number }) => {
+    if (isDualSideEligible && printType === 'dual') {
+      if (activeSide === 'front') {
+        if (patch.zoom !== undefined) setFrontZoom(patch.zoom);
+        if (patch.rotation !== undefined) setFrontRotation(patch.rotation);
+      } else {
+        if (patch.zoom !== undefined) setBackZoom(patch.zoom);
+        if (patch.rotation !== undefined) setBackRotation(patch.rotation);
+      }
+    } else if (isFridgeMagnet) {
+      setMagnetSlots((prev) => {
+        const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], ...patch }; return c;
+      });
+    } else if (isMiniGallery) {
+      setMiniGallerySlots((prev) => {
+        const c = [...prev]; c[activeGalleryIdx] = { ...c[activeGalleryIdx], ...patch }; return c;
+      });
+    } else {
+      if (patch.zoom !== undefined) setZoom(patch.zoom);
+      if (patch.rotation !== undefined) setRotation(patch.rotation);
+    }
+  };
+
   // Reset transforms
   const resetTransforms = () => {
     if (isDualSideEligible && printType === 'dual') {
@@ -741,12 +798,112 @@ export default function LiveCustomizerModal({
     }
   };
 
+  // Width of the editing box the transforms were made in. The box isn't mounted in the grid /
+  // preview views, so fall back to its CSS size (h-64 w-64, sm:h-72 sm:w-72).
+  const getPreviewBoxSize = () =>
+    previewBoxRef.current?.offsetWidth ||
+    (typeof window !== 'undefined' && window.innerWidth >= 640 ? 288 : 256);
+
+  const hasAnyPhoto = isFridgeMagnet
+    ? magnetSlots.slice(0, magnetCount).some((s) => s.imagePreviewUrl)
+    : isMiniGallery
+    ? activeGallerySlots.some((s) => s.imagePreviewUrl)
+    : isDualSideEligible && printType === 'dual'
+    ? Boolean(frontPreviewUrl || backPreviewUrl)
+    : Boolean(imagePreviewUrl);
+
+  // Multi-photo packs are priced per piece, so every magnet / frame the customer pays for needs
+  // its own photo — otherwise production gets e.g. a "Set of 6" order with a single photo.
+  const packSlots = isFridgeMagnet
+    ? magnetSlots.slice(0, magnetCount).map((s) => Boolean(s.imagePreviewUrl))
+    : isMiniGallery
+    ? activeGallerySlots.map((s) => Boolean(s.imagePreviewUrl))
+    : [];
+  const firstEmptySlot = packSlots.indexOf(false);
+  const missingPhotos = packSlots.filter((f) => !f).length;
+  const goToEmptySlot = () => {
+    if (firstEmptySlot < 0) return;
+    if (isFridgeMagnet) {
+      setActiveMagnetIdx(firstEmptySlot);
+      setMagnetViewMode('single');
+      magnetFileInputRef.current?.click();
+    } else {
+      setActiveGalleryIdx(firstEmptySlot);
+      setGalleryViewMode('single');
+      galleryFileInputRef.current?.click();
+    }
+  };
+
+  // Build the same composites used for the print file, so the preview is exactly what gets printed
+  const handleOpenPreview = async () => {
+    setIsGeneratingPreview(true);
+    try {
+      const box = getPreviewBoxSize();
+      const compose = async (
+        label: string,
+        url: string | null,
+        frameUrl: string,
+        t: { zoom: number; rotation: number; posX: number; posY: number; flipH: boolean; flipV: boolean },
+        withText = false
+      ): Promise<PreviewArtwork> => {
+        if (!url) return { label, url: null, frameUrl };
+        const art = await generatePrintArtworkBlob(
+          url, frameUrl, t.zoom, t.rotation, t.posX, t.posY, t.flipH, t.flipV, box,
+          withText ? customText : undefined, textStyle
+        );
+        return { label, url: art ? await trimTransparent(art) : null, frameUrl };
+      };
+
+      let arts: PreviewArtwork[];
+      if (isFridgeMagnet) {
+        arts = await Promise.all(
+          magnetSlots.slice(0, magnetCount).map((s) => compose(s.name, s.imagePreviewUrl, slotFrame(s), s))
+        );
+      } else if (isMiniGallery) {
+        arts = await Promise.all(
+          activeGallerySlots.map((s) => compose(`Frame ${s.slot}`, s.imagePreviewUrl, activeFrameUrl, s, true))
+        );
+      } else if (isDualSideEligible && printType === 'dual') {
+        arts = await Promise.all([
+          compose('Front', frontPreviewUrl, activeFrameUrl, {
+            zoom: frontZoom, rotation: frontRotation, posX: frontPosX, posY: frontPosY, flipH: frontFlipH, flipV: frontFlipV,
+          }, true),
+          compose('Back', backPreviewUrl, activeFrameUrl, {
+            zoom: backZoom, rotation: backRotation, posX: backPosX, posY: backPosY, flipH: backFlipH, flipV: backFlipV,
+          }),
+        ]);
+      } else {
+        arts = [await compose(product.title, imagePreviewUrl, activeFrameUrl, { zoom, rotation, posX, posY, flipH, flipV }, true)];
+      }
+
+      setPreviewArtworks(arts);
+      setIsPreviewMode(true);
+    } catch (err) {
+      console.error('Preview generation error:', err);
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
+  // An order must never reach production without its print files, so any failed upload
+  // aborts the add-to-cart instead of silently falling back to the raw photo.
+  const required = <T,>(result: T | null, what: string): T => {
+    if (!result) throw new Error(`Couldn't upload ${what}. Please check your internet connection and try again.`);
+    return result;
+  };
+
   // Save & Add To Cart
   const handleSaveAndAdd = async () => {
+    if (missingPhotos > 0) {
+      setIsPreviewMode(false);
+      setSaveError(`Please upload a photo for every ${isFridgeMagnet ? 'magnet' : 'frame'} (${missingPhotos} missing).`);
+      return;
+    }
     setIsUploading(true);
+    setSaveError('');
 
     try {
-      const previewBoxWidth = previewBoxRef.current?.offsetWidth || 300;
+      const previewBoxWidth = getPreviewBoxSize();
 
       // 1. Fridge Magnet Multi-Image Flow
       if (isFridgeMagnet) {
@@ -754,38 +911,38 @@ export default function LiveCustomizerModal({
         const activeSlots = magnetSlots.slice(0, magnetCount);
 
         for (const slot of activeSlots) {
-          let photoUrl = slot.imagePreviewUrl || '';
+          // Empty magnets are left out — they used to be sent as the blank frame image
+          if (!slot.imagePreviewUrl) continue;
+
+          let photoUrl = slot.imagePreviewUrl;
           let artworkUrl = '';
 
           if (slot.imageFile) {
             const upRes = await uploadCustomPhoto(slot.imageFile);
-            if (upRes) photoUrl = upRes.url;
+            photoUrl = required(upRes, 'your photo').url;
           }
 
-          if (slot.imagePreviewUrl) {
-            const artBase64 = await generatePrintArtworkBlob(
-              slot.imagePreviewUrl,
-              slot.frameUrl,
-              slot.zoom,
-              slot.rotation,
-              slot.posX,
-              slot.posY,
-              slot.flipH,
-              slot.flipV,
-              previewBoxWidth
-            );
-            if (artBase64) {
-              const artRes = await uploadPrintArtwork(artBase64);
-              if (artRes) artworkUrl = artRes.url;
-            }
-          }
+          const artBase64 = await generatePrintArtworkBlob(
+            slot.imagePreviewUrl,
+            slotFrame(slot),
+            slot.zoom,
+            slot.rotation,
+            slot.posX,
+            slot.posY,
+            slot.flipH,
+            slot.flipV,
+            previewBoxWidth
+          );
+          const artRes = artBase64 ? await uploadPrintArtwork(artBase64) : null;
+          artworkUrl = required(artRes, `the print file for ${slot.name}`).url;
 
           uploadedSlots.push({
             slot: slot.slot,
             name: slot.name,
-            photoUrl: photoUrl || slot.frameUrl,
-            artworkUrl: artworkUrl || undefined,
-            shape: slot.shape,
+            photoUrl,
+            artworkUrl,
+            shape: slotShape(slot),
+            frameUrl: slotFrame(slot),
           });
         }
 
@@ -799,6 +956,7 @@ export default function LiveCustomizerModal({
           setOption: magnetSetOption,
           multiImages: uploadedSlots,
           quantity: 1,
+          ...variationFields,
         });
 
         setIsUploading(false);
@@ -815,11 +973,11 @@ export default function LiveCustomizerModal({
 
         if (frontImageFile) {
           const upRes = await uploadCustomPhoto(frontImageFile);
-          if (upRes) frontUrl = upRes.url;
+          frontUrl = required(upRes, 'your photo').url;
         }
         if (backImageFile) {
           const upRes = await uploadCustomPhoto(backImageFile);
-          if (upRes) backUrl = upRes.url;
+          backUrl = required(upRes, 'your photo').url;
         }
 
         if (frontPreviewUrl) {
@@ -838,7 +996,7 @@ export default function LiveCustomizerModal({
           );
           if (fArt) {
             const artRes = await uploadPrintArtwork(fArt);
-            if (artRes) frontArt = artRes.url;
+            frontArt = required(artRes, 'the print file').url;
           }
         }
 
@@ -856,7 +1014,7 @@ export default function LiveCustomizerModal({
           );
           if (bArt) {
             const artRes = await uploadPrintArtwork(bArt);
-            if (artRes) backArt = artRes.url;
+            backArt = required(artRes, 'the print file').url;
           }
         }
 
@@ -874,6 +1032,7 @@ export default function LiveCustomizerModal({
           backArtworkUrl: backArt || undefined,
           customText: customText.trim() || undefined,
           quantity: 1,
+          ...variationFields,
         });
 
         setIsUploading(false);
@@ -883,32 +1042,45 @@ export default function LiveCustomizerModal({
 
       // 3. Mini Gallery Collage Flow
       if (isMiniGallery) {
+        // Only frames the customer actually filled — empty frames must not be sent to print as
+        // blank frame silhouettes. Each frame gets its own print artwork with its own adjustments.
         const uploadedMiniSlots = [];
-        for (const slot of miniGallerySlots) {
-          let photoUrl = slot.imagePreviewUrl || '';
+        for (const slot of activeGallerySlots) {
+          if (!slot.imagePreviewUrl) continue;
+
+          let photoUrl = slot.imagePreviewUrl;
           if (slot.imageFile) {
             const upRes = await uploadCustomPhoto(slot.imageFile);
-            if (upRes) photoUrl = upRes.url;
+            photoUrl = required(upRes, 'your photo').url;
           }
-          uploadedMiniSlots.push({
-            slot: slot.slot,
-            photoUrl: photoUrl || activeFrameUrl,
-          });
-        }
 
-        let mainArtUrl = '';
-        const firstPhoto = miniGallerySlots.find((s) => s.imagePreviewUrl)?.imagePreviewUrl;
-        if (firstPhoto) {
+          let artworkUrl = '';
           const artBase64 = await generatePrintArtworkBlob(
-            firstPhoto,
+            slot.imagePreviewUrl,
             activeFrameUrl,
-            1, 0, 0, 0, false, false,
-            previewBoxWidth
+            slot.zoom,
+            slot.rotation,
+            slot.posX,
+            slot.posY,
+            slot.flipH,
+            slot.flipV,
+            previewBoxWidth,
+            customText,
+            textStyle
           );
           if (artBase64) {
             const artRes = await uploadPrintArtwork(artBase64);
-            if (artRes) mainArtUrl = artRes.url;
+            artworkUrl = required(artRes, 'the print file').url;
           }
+
+          uploadedMiniSlots.push({
+            slot: slot.slot,
+            name: `Frame ${slot.slot}`,
+            photoUrl,
+            artworkUrl: artworkUrl || undefined,
+            shape: variationLabel || currentShape,
+            frameUrl: activeFrameUrl,
+          });
         }
 
         addToCart({
@@ -916,10 +1088,13 @@ export default function LiveCustomizerModal({
           title: product.title,
           slug: product.slug,
           price: effectivePrice,
-          image: mainArtUrl || activeFrameUrl || product.image_url,
+          image: uploadedMiniSlots[0]?.artworkUrl || uploadedMiniSlots[0]?.photoUrl || activeFrameUrl || product.image_url,
           shape: currentShape,
           multiImages: uploadedMiniSlots,
+          setOption: `${galleryFrameCount} Frames`,
+          customText: customText.trim() || undefined,
           quantity: 1,
+          ...variationFields,
         });
 
         setIsUploading(false);
@@ -933,7 +1108,7 @@ export default function LiveCustomizerModal({
 
       if (imageFile) {
         const uploadRes = await uploadCustomPhoto(imageFile);
-        if (uploadRes) originalPhotoUrl = uploadRes.url;
+        originalPhotoUrl = required(uploadRes, 'your photo').url;
       }
 
       if (imagePreviewUrl) {
@@ -953,7 +1128,7 @@ export default function LiveCustomizerModal({
 
         if (artworkBase64) {
           const artworkRes = await uploadPrintArtwork(artworkBase64);
-          if (artworkRes) printReadyArtworkUrl = artworkRes.url;
+          printReadyArtworkUrl = required(artworkRes, 'the print file').url;
         }
       }
 
@@ -982,6 +1157,7 @@ export default function LiveCustomizerModal({
         customizationSettings,
         customText: customText.trim() || undefined,
         quantity: 1,
+        ...variationFields,
       });
 
       setIsUploading(false);
@@ -989,7 +1165,7 @@ export default function LiveCustomizerModal({
     } catch (err) {
       console.error('Customizer add-to-cart error:', err);
       setIsUploading(false);
-      onClose();
+      setSaveError(err instanceof Error ? err.message : 'Something went wrong while saving. Please try again.');
     }
   };
 
@@ -1007,7 +1183,7 @@ export default function LiveCustomizerModal({
         y: s?.posY ?? 0,
         flipH: s?.flipH ?? false,
         flipV: s?.flipV ?? false,
-        frameUrl: s?.frameUrl || activeFrameUrl,
+        frameUrl: s ? slotFrame(s) : activeFrameUrl,
       };
     }
     if (isDualSideEligible && printType === 'dual') {
@@ -1109,7 +1285,7 @@ export default function LiveCustomizerModal({
                   : isDualSideEligible && printType === 'dual'
                   ? `Dual-Side 3D Customizer`
                   : isMiniGallery
-                  ? `Mini Gallery Multi-Photo Collage`
+                  ? `Mini Gallery Collage (${galleryFrameCount} Frames)`
                   : `Upload Personalize Photo`}
               </h2>
               <p className="text-[11px] font-medium text-stone-500 hidden xs:block truncate">
@@ -1133,6 +1309,32 @@ export default function LiveCustomizerModal({
 
         {/* Main Content */}
         <div className="flex-1 p-4 sm:p-6 space-y-4 bg-stone-50/50">
+          {isPreviewMode ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-primary-600" />
+                <span className="text-xs font-extrabold uppercase tracking-wider text-stone-900">
+                  Your Final Product Preview
+                </span>
+              </div>
+              <ProductPreviewMockup
+                product={product}
+                artworks={previewArtworks}
+                isFridgeMagnet={isFridgeMagnet}
+                isMiniGallery={isMiniGallery}
+                isDual={isDualSideEligible && printType === 'dual'}
+              />
+              {previewArtworks.some((a) => !a.url) && (
+                <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                  Some {isFridgeMagnet ? 'magnets' : isMiniGallery ? 'frames' : 'sides'} don&apos;t have a photo yet — tap Edit Again to add them.
+                </p>
+              )}
+              <p className="text-[11px] text-stone-500 font-medium text-center">
+                This is exactly how your photo will be cut and printed on the {variationLabel || currentShape} frame.
+              </p>
+            </div>
+          ) : (
+          <>
           
           {/* FRIDGE MAGNET MULTI-SLOT HEADER TABS */}
           {isFridgeMagnet && (
@@ -1191,6 +1393,42 @@ export default function LiveCustomizerModal({
                           ✓
                         </span>
                       )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Per-magnet frame: defaults to the shape chosen on the product page */}
+          {isFridgeMagnet && magnetViewMode === 'single' && frameOptions.length > 1 && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-stone-700">
+                Frame for Magnet {activeMagnetIdx + 1}:{' '}
+                <strong className="text-primary-700">{slotShape(magnetSlots[activeMagnetIdx])}</strong>
+              </span>
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {frameOptions.map((opt) => {
+                  const current = slotFrame(magnetSlots[activeMagnetIdx]) === opt.url;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      title={opt.label}
+                      onClick={() =>
+                        setMagnetSlots((prev) => {
+                          const c = [...prev];
+                          c[activeMagnetIdx] = { ...c[activeMagnetIdx], frameUrl: opt.url, shape: opt.label };
+                          return c;
+                        })
+                      }
+                      className={`flex-shrink-0 rounded-lg border-2 p-1 ${
+                        current ? 'border-primary-600 ring-2 ring-primary-600/20' : 'border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded bg-stone-700">
+                        <img src={opt.url} alt={opt.label} className="h-7 w-7 object-contain" />
+                      </span>
                     </button>
                   );
                 })}
@@ -1276,8 +1514,8 @@ export default function LiveCustomizerModal({
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                {miniGallerySlots.map((slot, idx) => (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {activeGallerySlots.map((slot, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -1341,13 +1579,13 @@ export default function LiveCustomizerModal({
               </p>
             </div>
           ) : isMiniGallery && galleryViewMode === 'grid' ? (
-            /* Complete Mini Gallery Collage Preview — shows all 4 frames together */
+            /* Complete Mini Gallery Collage Preview — shows all chosen frames together */
             <div className="relative rounded-3xl border border-stone-300 bg-gradient-to-b from-slate-200 via-slate-100 to-slate-200 p-6 min-h-[350px] flex flex-col items-center justify-center shadow-inner select-none">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 mb-3">
-                Mini Gallery Collage Preview (4 Frames)
+                Mini Gallery Collage Preview ({galleryFrameCount} Frames)
               </span>
-              <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
-                {miniGallerySlots.map((slot, idx) => (
+              <div className={`grid gap-4 w-full ${galleryFrameCount > 4 ? 'grid-cols-3 max-w-sm' : 'grid-cols-2 max-w-xs'}`}>
+                {activeGallerySlots.map((slot, idx) => (
                   <div
                     key={idx}
                     onClick={() => {
@@ -1554,13 +1792,7 @@ export default function LiveCustomizerModal({
                     type="button"
                     onClick={() => {
                       const newZ = Math.max(0.4, +(activeState.zoom - 0.1).toFixed(2));
-                      if (isDualSideEligible && printType === 'dual') {
-                        if (activeSide === 'front') setFrontZoom(newZ); else setBackZoom(newZ);
-                      } else if (isFridgeMagnet) {
-                        setMagnetSlots((prev) => {
-                          const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], zoom: newZ }; return c;
-                        });
-                      } else { setZoom(newZ); }
+                      updateActiveTransform({ zoom: newZ });
                     }}
                     className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
                     title="Zoom Out"
@@ -1574,13 +1806,7 @@ export default function LiveCustomizerModal({
                     type="button"
                     onClick={() => {
                       const newZ = Math.min(3.5, +(activeState.zoom + 0.1).toFixed(2));
-                      if (isDualSideEligible && printType === 'dual') {
-                        if (activeSide === 'front') setFrontZoom(newZ); else setBackZoom(newZ);
-                      } else if (isFridgeMagnet) {
-                        setMagnetSlots((prev) => {
-                          const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], zoom: newZ }; return c;
-                        });
-                      } else { setZoom(newZ); }
+                      updateActiveTransform({ zoom: newZ });
                     }}
                     className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
                     title="Zoom In"
@@ -1593,14 +1819,8 @@ export default function LiveCustomizerModal({
                   <button
                     type="button"
                     onClick={() => {
-                      const newR = (activeState.rot + 90) % 360;
-                      if (isDualSideEligible && printType === 'dual') {
-                        if (activeSide === 'front') setFrontRotation(newR); else setBackRotation(newR);
-                      } else if (isFridgeMagnet) {
-                        setMagnetSlots((prev) => {
-                          const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], rotation: newR }; return c;
-                        });
-                      } else { setRotation(newR); }
+                      const newR = ((activeState.rot + 90 + 180) % 360) - 180;
+                      updateActiveTransform({ rotation: newR });
                     }}
                     className="p-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
                     title="Rotate 90°"
@@ -1786,13 +2006,7 @@ export default function LiveCustomizerModal({
                         value={activeState.zoom}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value);
-                          if (isDualSideEligible && printType === 'dual') {
-                            if (activeSide === 'front') setFrontZoom(val); else setBackZoom(val);
-                          } else if (isFridgeMagnet) {
-                            setMagnetSlots((prev) => {
-                              const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], zoom: val }; return c;
-                            });
-                          } else { setZoom(val); }
+                          updateActiveTransform({ zoom: val });
                         }}
                         className="w-full accent-primary-600 h-2 bg-stone-200 rounded-lg cursor-pointer"
                       />
@@ -1817,13 +2031,7 @@ export default function LiveCustomizerModal({
                         value={activeState.rot}
                         onChange={(e) => {
                           const val = parseInt(e.target.value);
-                          if (isDualSideEligible && printType === 'dual') {
-                            if (activeSide === 'front') setFrontRotation(val); else setBackRotation(val);
-                          } else if (isFridgeMagnet) {
-                            setMagnetSlots((prev) => {
-                              const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], rotation: val }; return c;
-                            });
-                          } else { setRotation(val); }
+                          updateActiveTransform({ rotation: val });
                         }}
                         className="w-full accent-primary-600 h-2 bg-stone-200 rounded-lg cursor-pointer"
                       />
@@ -1869,33 +2077,107 @@ export default function LiveCustomizerModal({
             </div>
           )}
 
+          </>
+          )}
         </div>
 
-        {/* Sticky Bottom Save Action Bar */}
+        {/* Sticky Bottom Action Bar */}
         <div className="sticky bottom-0 z-30 border-t border-stone-200 bg-white p-4 sm:p-5 shadow-lg">
-          <button
-            type="button"
-            disabled={isUploading}
-            onClick={handleSaveAndAdd}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 py-3 text-sm font-bold text-white shadow-md shadow-primary-600/20 hover:shadow-lg transition-all disabled:opacity-60 active:scale-[0.99]"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Generating High-Res Proof & Saving...</span>
-              </>
-            ) : hasCurrentPhoto ? (
-              <>
-                <Check className="h-5 w-5" />
-                <span>Save & Continue (₹{effectivePrice})</span>
-              </>
-            ) : (
-              <>
-                <Upload className="h-5 w-5" />
-                <span>Upload Photo & Continue</span>
-              </>
-            )}
-          </button>
+          {saveError && (
+            <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+              ⚠️ {saveError} Your item was not added to the cart.
+            </p>
+          )}
+          {isPreviewMode ? (
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => setIsPreviewMode(false)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm font-bold text-stone-800 hover:bg-stone-50 transition-all disabled:opacity-60"
+              >
+                <Pencil className="h-4 w-4" />
+                <span>Edit Again</span>
+              </button>
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={handleSaveAndAdd}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 py-3 text-sm font-bold text-white shadow-md shadow-primary-600/20 hover:shadow-lg transition-all disabled:opacity-60 active:scale-[0.99]"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-5 w-5" />
+                    <span>Looks Perfect — Add to Cart (₹{effectivePrice})</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : hasAnyPhoto && missingPhotos > 0 ? (
+            <button
+              type="button"
+              onClick={goToEmptySlot}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 py-3 text-sm font-bold text-white shadow-md shadow-primary-600/20 hover:shadow-lg transition-all active:scale-[0.99]"
+            >
+              <Upload className="h-5 w-5" />
+              <span>
+                Upload {missingPhotos} more photo{missingPhotos > 1 ? 's' : ''} ({packSlots.length - missingPhotos}/{packSlots.length} {isFridgeMagnet ? 'magnets' : 'frames'} done)
+              </span>
+            </button>
+          ) : hasAnyPhoto ? (
+            <button
+              type="button"
+              disabled={isGeneratingPreview}
+              onClick={handleOpenPreview}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 py-3 text-sm font-bold text-white shadow-md shadow-primary-600/20 hover:shadow-lg transition-all disabled:opacity-60 active:scale-[0.99]"
+            >
+              {isGeneratingPreview ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Building your preview...</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="h-5 w-5" />
+                  <span>Preview My Product</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isUploading}
+              // No photo yet: open the picker instead of adding a blank, unprintable item to the cart
+              onClick={() => {
+                if (isFridgeMagnet) magnetFileInputRef.current?.click();
+                else if (isMiniGallery) galleryFileInputRef.current?.click();
+                else fileInputRef.current?.click();
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 py-3 text-sm font-bold text-white shadow-md shadow-primary-600/20 hover:shadow-lg transition-all disabled:opacity-60 active:scale-[0.99]"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Generating High-Res Proof & Saving...</span>
+                </>
+              ) : hasCurrentPhoto ? (
+                <>
+                  <Check className="h-5 w-5" />
+                  <span>Save & Continue (₹{effectivePrice})</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-5 w-5" />
+                  <span>Upload Photo & Continue</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
       </div>

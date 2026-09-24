@@ -29,8 +29,32 @@ export interface Category {
   image_url: string;
   description: string;
   display_order: number;
-  product_count?: number;
+  product_count?: number; // includes sub-categories' products
+  own_product_count?: number; // this category's products only
   bg_removal_enabled: number; // 0 or 1
+}
+
+// WooCommerce-style attribute on a product (Admin > Products > edit > Attributes & Variations)
+export interface ProductAttribute {
+  id: number | null; // global attribute id, null for a product-only custom attribute
+  name: string;
+  type?: 'select' | 'image' | 'color';
+  options: string[];
+  options_meta?: { name: string; image_url: string | null; color: string | null }[];
+  visible: boolean; // show in the product's specifications
+  variation: boolean; // customer picks this to choose a variation
+}
+
+export interface ProductVariation {
+  id?: number;
+  attributes: Record<string, string>; // attribute name -> option ('' = any)
+  sku: string;
+  price: number;
+  original_price: number | null;
+  stock: number;
+  image_url: string;
+  frame_url: string; // cutout/mask used by the Live Customizer
+  is_active: number;
 }
 
 export interface Product {
@@ -57,6 +81,12 @@ export interface Product {
   related?: Product[];
   category_bg_removal?: number; // 1 = auto bg removal enabled for this category
   product_type?: 'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery';
+  attributes?: ProductAttribute[];
+  variations?: ProductVariation[];
+  // Listing endpoint only: active variation price range
+  has_variations?: number;
+  min_price?: number | null;
+  max_price?: number | null;
 }
 
 export interface CustomizationSettings {
@@ -83,6 +113,7 @@ export interface CustomizationSettings {
     photoUrl: string;
     artworkUrl?: string;
     shape?: string;
+    frameUrl?: string; // the cutout this photo was printed in
     settings?: Partial<CustomizationSettings>;
   }[];
 }
@@ -109,10 +140,15 @@ export interface CartItem {
     photoUrl: string;
     artworkUrl?: string;
     shape?: string;
+    frameUrl?: string; // the cutout this photo was printed in
   }[];
   customizationSettings?: CustomizationSettings;
   customPhotoData?: string;
   customText?: string;
+  variationId?: number;
+  variationLabel?: string; // e.g. "8x10 in / Gold"
+  variationSelection?: Record<string, string>; // what the customer picked (resolves "Any" values)
+  frameImage?: string; // cutout the photo was printed in (all customizer flows)
   quantity: number;
 }
 
@@ -126,12 +162,14 @@ export interface OrderPayload {
   pincode: string;
   payment_method: string;
   notes?: string;
-  discount?: number;
+  coupon_code?: string; // Admin > Coupons code; the discount is computed by the server
   items: {
     product_id: number;
     product_title: string;
     product_image: string;
     shape_selected: string;
+    variation_id?: number;
+    variation_selection?: Record<string, string>;
     custom_photo_url?: string;
     print_ready_artwork_url?: string;
     customization_json?: string | CustomizationSettings | any;
@@ -236,20 +274,31 @@ export async function uploadCustomPhoto(file: File): Promise<{ url: string; file
   }
 }
 
-export async function uploadPrintArtwork(base64Data: string): Promise<{ url: string; filename: string } | null> {
+// Uploads the print-ready PNG as a binary multipart file (like photo uploads) rather than a
+// base64 JSON body, which is ~33% bigger and was being rejected in production — orders then
+// reached the admin with only the raw photo and no cut-out print file. Retries once.
+export async function uploadPrintArtwork(dataUrl: string): Promise<{ url: string; filename: string } | null> {
+  let blob: Blob;
   try {
-    const res = await fetch(`${API_BASE}/upload-artwork`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ artwork_data: base64Data }),
-    });
-    if (!res.ok) throw new Error('Artwork upload failed');
-    const data = await res.json();
-    return data.data || null;
+    blob = await (await fetch(dataUrl)).blob();
   } catch (err) {
-    console.warn('Artwork upload notice:', err);
+    console.warn('Artwork encode notice:', err);
     return null;
   }
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const formData = new FormData();
+      formData.append('artwork', blob, 'artwork.png');
+      const res = await fetch(`${API_BASE}/upload-artwork`, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`Artwork upload failed (${res.status})`);
+      const data = await res.json();
+      if (data?.data?.url) return data.data;
+      throw new Error(data?.message || 'Artwork upload failed');
+    } catch (err) {
+      console.warn(`Artwork upload attempt ${attempt} notice:`, err);
+    }
+  }
+  return null;
 }
 
 export async function createOrder(payload: OrderPayload) {
@@ -456,6 +505,109 @@ export async function fetchPublicSettings(): Promise<PublicSettings> {
   } catch (err) {
     console.warn('Settings fetch fallback:', err);
     return { hero_mode: 'split', razorpay_enabled: 'true', razorpay_mode: 'test' };
+  }
+}
+
+// ── Storefront content (Admin > Homepage) ──
+export interface BannerContent {
+  enabled?: boolean;
+  image: string;
+  mobile_image?: string;
+  link: string;
+  alt?: string;
+  title?: string;
+}
+
+export interface CraftPillar {
+  title: string;
+  desc: string;
+}
+
+export function parseJsonSetting<T>(value: unknown, fallback: T): T {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value !== 'string') return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+// WhatsApp chat link from the admin's number (digits only) and an optional prefilled message
+export function whatsappLink(number?: string, message?: string): string {
+  const digits = String(number || '').replace(/\D/g, '');
+  const base = `https://wa.me/${digits}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+}
+
+export type HomeBlockType =
+  | 'hero' | 'categories' | 'mid_banner' | 'bestsellers' | 'promo_slider'
+  | 'category' | 'featured' | 'craftsmanship' | 'reviews';
+
+export interface HomeReview {
+  id: number;
+  customer_name: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  created_at: string;
+  product_title?: string;
+  product_slug?: string;
+}
+
+export interface HomeBlock {
+  id: string;
+  type: HomeBlockType;
+  enabled: boolean;
+  category_id: number | null;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  limit: number;
+  category?: Category;
+  products?: Product[];
+  reviews?: HomeReview[];
+  stats?: { count: number; average: number | null };
+}
+
+const toListing = (p: Product): Product => ({
+  ...p,
+  title: formatProductTitle(p.title),
+  short_desc: formatProductTitle(p.short_desc),
+  price: Number(p.price),
+  original_price: Number(p.original_price),
+});
+
+// Ordered homepage sections. `all` also returns disabled ones (for the admin editor).
+export async function fetchHome(all = false): Promise<HomeBlock[]> {
+  try {
+    const res = await fetch(`${API_BASE}/home${all ? '?all=1' : ''}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to fetch homepage');
+    const data = await res.json();
+    const blocks: HomeBlock[] = data.data?.blocks || [];
+    return blocks.map((b) => (b.products ? { ...b, products: b.products.map(toListing) } : b));
+  } catch (err) {
+    console.warn('Homepage API fetch notice:', err);
+    return [];
+  }
+}
+
+export async function validateCoupon(
+  code: string,
+  subtotal: number
+): Promise<{ ok: boolean; message: string; code?: string; discount?: number }> {
+  try {
+    const res = await fetch(`${API_BASE}/coupons/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, subtotal }),
+    });
+    const data = await res.json();
+    return data.status === 'success'
+      ? { ok: true, message: data.message, code: data.data.code, discount: Number(data.data.discount) }
+      : { ok: false, message: data.message || 'This coupon code is not valid.' };
+  } catch {
+    return { ok: false, message: 'Could not check the coupon. Please try again.' };
   }
 }
 

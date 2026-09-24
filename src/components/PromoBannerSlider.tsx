@@ -3,36 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BannerContent } from '@/lib/api';
 
-interface PromoSlide {
-  id: string;
-  image: string;
-  link: string;
-  title: string;
-}
-
-const PROMO_SLIDES: PromoSlide[] = [
-  {
-    id: 'promo-1',
-    title: 'Celebrate Love with Bespoke Acrylic Keepsakes - Flat 15% OFF',
-    image: '/banners/promo_couple_love.jpg',
-    link: '/shop?category=carrycature',
-  },
-  {
-    id: 'promo-2',
-    title: 'Festive Gift Hampers & Corporate Combos',
-    image: '/banners/promo_festive_gifts.jpg',
-    link: '/shop',
-  },
-  {
-    id: 'promo-3',
-    title: 'Custom Acrylic Car Charms & Dashboard Stands',
-    image: '/banners/promo_car_accessories.jpg',
-    link: '/shop?category=car-hanging',
-  }
-];
-
-export default function PromoBannerSlider() {
+// Rotating banners (Admin > Homepage > Promo Slider)
+export default function PromoBannerSlider({ slides }: { slides: BannerContent[] }) {
+  const PROMO_SLIDES = slides.filter((s) => s.image);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -40,12 +15,12 @@ export default function PromoBannerSlider() {
 
   // Auto-slide every 5 seconds
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || PROMO_SLIDES.length < 2) return;
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % PROMO_SLIDES.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, PROMO_SLIDES.length]);
 
   const handlePrev = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -77,7 +52,8 @@ export default function PromoBannerSlider() {
     touchEndX.current = null;
   };
 
-  const current = PROMO_SLIDES[activeSlide];
+  if (PROMO_SLIDES.length === 0) return null;
+  const current = PROMO_SLIDES[activeSlide % PROMO_SLIDES.length];
 
   return (
     <section className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
@@ -91,16 +67,18 @@ export default function PromoBannerSlider() {
       >
         {/* Full Clickable Clean Banner */}
         <Link
-          href={current.link}
+          href={current.link || '/shop'}
           className="block relative aspect-[16/9] sm:aspect-[21/9] lg:aspect-[24/9] w-full overflow-hidden bg-stone-950"
-          aria-label={current.title}
+          aria-label={current.title || 'Promotion'}
         >
-          <img
-            key={current.image}
-            src={current.image}
-            alt={current.title}
-            className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-          />
+          <picture key={current.image}>
+            {current.mobile_image && <source media="(max-width: 639px)" srcSet={current.mobile_image} />}
+            <img
+              src={current.image}
+              alt={current.title || ''}
+              className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+            />
+          </picture>
         </Link>
 
         {/* Desktop-Only Subtle Side Arrow Buttons (Hidden on Mobile for zero clutter) */}

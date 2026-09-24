@@ -59,22 +59,29 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#0c0d0e] text-stone-100 font-sans antialiased selection:bg-primary-600 selection:text-white">
+    // App shell: the layout is exactly one viewport tall and never grows, so the sidebar and
+    // header stay fixed and only <main> scrolls. (With min-h-screen the whole document grew
+    // with long pages and the browser window scrolled instead.)
+    <div className="flex h-dvh w-full overflow-hidden bg-[#0c0d0e] text-stone-100 font-sans antialiased selection:bg-primary-600 selection:text-white">
       {/* Sidebar */}
-      <AdminSidebar 
-        mobileOpen={mobileMenuOpen} 
+      <AdminSidebar
+        mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
         badgeCounts={badgeCounts}
       />
 
       {/* Main Content Area with Header */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader 
-          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} 
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <AdminHeader
+          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           stats={stats}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 max-w-[1536px] w-full mx-auto">
-          {children}
+        {/* Scroll container spans the full width so the scrollbar sits at the window edge;
+            the inner wrapper keeps the content width capped and centered. */}
+        <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <div className="p-4 sm:p-6 lg:p-7 max-w-[1536px] w-full mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

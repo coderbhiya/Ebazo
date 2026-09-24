@@ -103,6 +103,32 @@ export interface AdminProduct {
   stock: number;
   product_type?: 'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery';
   created_at?: string;
+  attributes?: import('./api').ProductAttribute[];
+  variations?: import('./api').ProductVariation[];
+  // Listing endpoint only
+  has_variations?: number;
+  min_price?: number | null;
+  max_price?: number | null;
+}
+
+// Global attribute (Admin > Products > Attributes)
+export interface AttributeTerm {
+  id: number;
+  attribute_id: number;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  color: string | null;
+  display_order: number;
+}
+
+export interface GlobalAttribute {
+  id: number;
+  name: string;
+  slug: string;
+  type: 'select' | 'image' | 'color';
+  display_order: number;
+  terms: AttributeTerm[];
 }
 
 export interface Customer {
@@ -190,6 +216,31 @@ export interface AnalyticsData {
 // API CLIENT FUNCTIONS
 // ==========================================
 
+export const ADMIN_TOKEN_KEY = 'ebanzo_admin_token';
+export const ADMIN_USER_KEY = 'ebanzo_admin_user';
+
+export function clearAdminSession() {
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_USER_KEY);
+}
+
+// Every admin request goes through here: attaches the Bearer token and sends the
+// user back to the login page when the backend rejects it (missing/expired/invalid).
+async function adminFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const token = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_TOKEN_KEY) : null;
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const res = await fetch(input, { ...init, headers });
+  if (res.status === 401 && typeof window !== 'undefined') {
+    clearAdminSession();
+    if (window.location.pathname !== '/admin/login') {
+      window.location.href = '/admin/login';
+    }
+  }
+  return res;
+}
+
 export async function adminLogin(username: string, password: string) {
   const res = await fetch(`${API_BASE}/admin/login`, {
     method: 'POST',
@@ -201,7 +252,7 @@ export async function adminLogin(username: string, password: string) {
 
 export async function fetchAdminStats(): Promise<AdminStats | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/stats`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/stats`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data;
@@ -230,7 +281,7 @@ export async function fetchAdminOrders(params?: {
     if (params?.search) q.set('search', params.search);
     if (params?.sort) q.set('sort', params.sort);
 
-    const res = await fetch(`${API_BASE}/admin/orders?${q.toString()}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/orders?${q.toString()}`, { cache: 'no-store' });
     if (!res.ok) return { data: [], pagination: { total: 0, page: 1, limit: 20, total_pages: 1 } };
     const data = await res.json();
     return {
@@ -245,7 +296,7 @@ export async function fetchAdminOrders(params?: {
 
 export async function fetchAdminOrder(id: number | string): Promise<Order | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/orders/${id}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/orders/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data || null;
@@ -267,7 +318,7 @@ export async function updateOrderStatus(
     notes?: string;
   }
 ) {
-  const res = await fetch(`${API_BASE}/admin/orders/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/orders/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -276,7 +327,7 @@ export async function updateOrderStatus(
 }
 
 export async function bulkUpdateOrderStatus(orderIds: number[], orderStatus?: string, productionStage?: string) {
-  const res = await fetch(`${API_BASE}/admin/orders/bulk-status`, {
+  const res = await adminFetch(`${API_BASE}/admin/orders/bulk-status`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_ids: orderIds, order_status: orderStatus, production_stage: productionStage }),
@@ -287,7 +338,7 @@ export async function bulkUpdateOrderStatus(orderIds: number[], orderStatus?: st
 export async function fetchProductionOrders(stage?: string): Promise<{ data: Order[]; stages: Record<string, number> }> {
   try {
     const url = stage && stage !== 'all' ? `${API_BASE}/admin/production?stage=${stage}` : `${API_BASE}/admin/production`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await adminFetch(url, { cache: 'no-store' });
     if (!res.ok) return { data: [], stages: {} };
     const data = await res.json();
     return { data: data.data || [], stages: data.stages || {} };
@@ -299,7 +350,7 @@ export async function fetchProductionOrders(stage?: string): Promise<{ data: Ord
 
 export async function fetchAdminProducts(): Promise<AdminProduct[]> {
   try {
-    const res = await fetch(`${API_BASE}/products`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/products`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -311,7 +362,8 @@ export async function fetchAdminProducts(): Promise<AdminProduct[]> {
 
 export async function fetchAdminProductById(id: string | number): Promise<AdminProduct | null> {
   try {
-    const res = await fetch(`${API_BASE}/products/${id}`, { cache: 'no-store' });
+    // all_variations=1 includes disabled variations so the editor can show them
+    const res = await adminFetch(`${API_BASE}/products/${id}?all_variations=1`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       if (data.data) return data.data;
@@ -329,7 +381,7 @@ export async function saveAdminProduct(productData: Partial<AdminProduct>, id?: 
   const url = id ? `${API_BASE}/admin/products/${id}` : `${API_BASE}/admin/products`;
   const method = id ? 'PUT' : 'POST';
 
-  const res = await fetch(url, {
+  const res = await adminFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(productData),
@@ -337,8 +389,47 @@ export async function saveAdminProduct(productData: Partial<AdminProduct>, id?: 
   return res.json();
 }
 
+async function jsonRequest(url: string, method: string, body?: unknown) {
+  const res = await adminFetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({ status: 'error', message: `Request failed (${res.status})` }));
+  if (!res.ok || data.status !== 'success') {
+    throw new Error(data.message || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+export async function fetchAdminAttributes(): Promise<GlobalAttribute[]> {
+  const data = await jsonRequest(`${API_BASE}/admin/attributes`, 'GET');
+  return data.data || [];
+}
+
+export async function saveAdminAttribute(payload: { name: string; type: GlobalAttribute['type'] }, id?: number) {
+  return jsonRequest(id ? `${API_BASE}/admin/attributes/${id}` : `${API_BASE}/admin/attributes`, id ? 'PUT' : 'POST', payload);
+}
+
+export async function deleteAdminAttribute(id: number) {
+  return jsonRequest(`${API_BASE}/admin/attributes/${id}`, 'DELETE');
+}
+
+export async function saveAdminAttributeTerm(
+  attributeId: number,
+  payload: { name: string; image_url?: string | null; color?: string | null },
+  termId?: number
+) {
+  const base = `${API_BASE}/admin/attributes/${attributeId}/terms`;
+  return jsonRequest(termId ? `${base}/${termId}` : base, termId ? 'PUT' : 'POST', payload);
+}
+
+export async function deleteAdminAttributeTerm(attributeId: number, termId: number) {
+  return jsonRequest(`${API_BASE}/admin/attributes/${attributeId}/terms/${termId}`, 'DELETE');
+}
+
 export async function deleteAdminProduct(id: number) {
-  const res = await fetch(`${API_BASE}/admin/products/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/products/${id}`, {
     method: 'DELETE',
   });
   return res.json();
@@ -346,7 +437,7 @@ export async function deleteAdminProduct(id: number) {
 
 export async function fetchAdminInventory(filter: string = 'all'): Promise<{ data: InventoryItem[]; summary: any }> {
   try {
-    const res = await fetch(`${API_BASE}/admin/inventory?filter=${filter}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/inventory?filter=${filter}`, { cache: 'no-store' });
     if (!res.ok) return { data: [], summary: { total_items: 0, low_stock: 0, out_of_stock: 0 } };
     const data = await res.json();
     return { data: data.data || [], summary: data.summary || {} };
@@ -357,7 +448,7 @@ export async function fetchAdminInventory(filter: string = 'all'): Promise<{ dat
 }
 
 export async function updateInventoryStock(id: number, stock: number) {
-  const res = await fetch(`${API_BASE}/admin/inventory/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/inventory/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ stock }),
@@ -368,7 +459,7 @@ export async function updateInventoryStock(id: number, stock: number) {
 export async function fetchAdminCustomers(search?: string): Promise<Customer[]> {
   try {
     const url = search ? `${API_BASE}/admin/customers?search=${encodeURIComponent(search)}` : `${API_BASE}/admin/customers`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await adminFetch(url, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -380,7 +471,7 @@ export async function fetchAdminCustomers(search?: string): Promise<Customer[]> 
 
 export async function fetchCustomerOrders(query: string): Promise<Order[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/customers/orders?query=${encodeURIComponent(query)}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/customers/orders?query=${encodeURIComponent(query)}`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -393,7 +484,7 @@ export async function fetchCustomerOrders(query: string): Promise<Order[]> {
 export async function fetchAdminShipping(status?: string): Promise<{ data: any[]; summary: any }> {
   try {
     const url = status && status !== 'all' ? `${API_BASE}/admin/shipping?status=${status}` : `${API_BASE}/admin/shipping`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await adminFetch(url, { cache: 'no-store' });
     if (!res.ok) return { data: [], summary: {} };
     const data = await res.json();
     return { data: data.data || [], summary: data.summary || {} };
@@ -406,7 +497,7 @@ export async function fetchAdminShipping(status?: string): Promise<{ data: any[]
 export async function fetchAdminPayments(status?: string): Promise<{ data: any[]; summary: any }> {
   try {
     const url = status && status !== 'all' ? `${API_BASE}/admin/payments?status=${status}` : `${API_BASE}/admin/payments`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await adminFetch(url, { cache: 'no-store' });
     if (!res.ok) return { data: [], summary: {} };
     const data = await res.json();
     return { data: data.data || [], summary: data.summary || {} };
@@ -418,7 +509,7 @@ export async function fetchAdminPayments(status?: string): Promise<{ data: any[]
 
 export async function fetchAdminCoupons(): Promise<Coupon[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/coupons`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/coupons`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -432,7 +523,7 @@ export async function saveAdminCoupon(couponData: Partial<Coupon>, id?: number) 
   const url = id ? `${API_BASE}/admin/coupons/${id}` : `${API_BASE}/admin/coupons`;
   const method = id ? 'PUT' : 'POST';
 
-  const res = await fetch(url, {
+  const res = await adminFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(couponData),
@@ -441,7 +532,7 @@ export async function saveAdminCoupon(couponData: Partial<Coupon>, id?: number) 
 }
 
 export async function deleteAdminCoupon(id: number) {
-  const res = await fetch(`${API_BASE}/admin/coupons/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/coupons/${id}`, {
     method: 'DELETE',
   });
   return res.json();
@@ -449,7 +540,7 @@ export async function deleteAdminCoupon(id: number) {
 
 export async function fetchAdminReviews(): Promise<Review[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/reviews`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/reviews`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -460,7 +551,7 @@ export async function fetchAdminReviews(): Promise<Review[]> {
 }
 
 export async function updateAdminReview(id: number, data: { status?: string; is_featured?: number }) {
-  const res = await fetch(`${API_BASE}/admin/reviews/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/reviews/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -469,7 +560,7 @@ export async function updateAdminReview(id: number, data: { status?: string; is_
 }
 
 export async function deleteAdminReview(id: number) {
-  const res = await fetch(`${API_BASE}/admin/reviews/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/reviews/${id}`, {
     method: 'DELETE',
   });
   return res.json();
@@ -477,7 +568,7 @@ export async function deleteAdminReview(id: number) {
 
 export async function fetchAdminAnalytics(range: string = '30d'): Promise<AnalyticsData | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/analytics?range=${range}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/analytics?range=${range}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data || null;
@@ -489,7 +580,7 @@ export async function fetchAdminAnalytics(range: string = '30d'): Promise<Analyt
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/users`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/users`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -503,7 +594,7 @@ export async function saveAdminUser(userData: Partial<AdminUser> & { password?: 
   const url = id ? `${API_BASE}/admin/users/${id}` : `${API_BASE}/admin/users`;
   const method = id ? 'PUT' : 'POST';
 
-  const res = await fetch(url, {
+  const res = await adminFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
@@ -513,7 +604,7 @@ export async function saveAdminUser(userData: Partial<AdminUser> & { password?: 
 
 export async function fetchAdminInquiries(): Promise<Inquiry[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/inquiries`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/inquiries`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || [];
@@ -524,7 +615,7 @@ export async function fetchAdminInquiries(): Promise<Inquiry[]> {
 }
 
 export async function updateInquiryStatus(id: number, status: string = 'read') {
-  const res = await fetch(`${API_BASE}/admin/inquiries/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/inquiries/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
@@ -534,7 +625,7 @@ export async function updateInquiryStatus(id: number, status: string = 'read') {
 
 // ── Category Settings & Management ──
 export async function fetchAdminCategories(): Promise<import('./api').Category[]> {
-  const res = await fetch(`${API_BASE}/admin/categories`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories`, {
     headers: { 'Content-Type': 'application/json' },
   });
   const data = await res.json();
@@ -550,7 +641,7 @@ export async function createAdminCategory(payload: {
   display_order?: number;
   bg_removal_enabled?: number;
 }) {
-  const res = await fetch(`${API_BASE}/admin/categories`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -562,7 +653,7 @@ export async function updateAdminCategory(
   id: number,
   payload: Partial<import('./api').Category>
 ) {
-  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -571,7 +662,7 @@ export async function updateAdminCategory(
 }
 
 export async function updateCategoryBgRemoval(id: number, enabled: boolean) {
-  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bg_removal_enabled: enabled ? 1 : 0 }),
@@ -580,7 +671,7 @@ export async function updateCategoryBgRemoval(id: number, enabled: boolean) {
 }
 
 export async function deleteAdminCategory(id: number) {
-  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories/${id}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -588,7 +679,7 @@ export async function deleteAdminCategory(id: number) {
 }
 
 export async function bulkDeleteAdminCategories(ids: number[]) {
-  const res = await fetch(`${API_BASE}/admin/categories/bulk-delete`, {
+  const res = await adminFetch(`${API_BASE}/admin/categories/bulk-delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
@@ -633,7 +724,7 @@ export interface AdminSettingsData {
 
 export async function fetchAdminSettings(): Promise<AdminSettingsData> {
   try {
-    const res = await fetch(`${API_BASE}/admin/settings`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/settings`, { cache: 'no-store' });
     if (!res.ok) return {};
     const data = await res.json();
     return data.data || {};
@@ -644,7 +735,7 @@ export async function fetchAdminSettings(): Promise<AdminSettingsData> {
 }
 
 export async function saveAdminSettings(settings: Partial<AdminSettingsData>) {
-  const res = await fetch(`${API_BASE}/admin/settings`, {
+  const res = await adminFetch(`${API_BASE}/admin/settings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
@@ -657,7 +748,7 @@ export async function testRazorpayCredentials(payload: {
   razorpay_key_secret?: string;
   razorpay_mode: 'test' | 'live';
 }) {
-  const res = await fetch(`${API_BASE}/admin/payments/test-razorpay`, {
+  const res = await adminFetch(`${API_BASE}/admin/payments/test-razorpay`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -671,7 +762,7 @@ export async function testShiprocketCredentials(payload: {
   shiprocket_mode: 'sandbox' | 'live';
   shiprocket_pickup_location?: string;
 }) {
-  const res = await fetch(`${API_BASE}/admin/shipping/test-shiprocket`, {
+  const res = await adminFetch(`${API_BASE}/admin/shipping/test-shiprocket`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -680,7 +771,7 @@ export async function testShiprocketCredentials(payload: {
 }
 
 export async function createShiprocketShipment(orderId: number) {
-  const res = await fetch(`${API_BASE}/admin/shipping/shiprocket/create-order`, {
+  const res = await adminFetch(`${API_BASE}/admin/shipping/shiprocket/create-order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_id: orderId }),
@@ -718,7 +809,7 @@ export async function fetchAdminPages(params?: { search?: string; status?: strin
     if (params?.search) q.append('search', params.search);
     if (params?.status && params.status !== 'all') q.append('status', params.status);
 
-    const res = await fetch(`${API_BASE}/admin/pages?${q.toString()}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/pages?${q.toString()}`, { cache: 'no-store' });
     if (!res.ok) return { pages: [], meta: { total: 0, published: 0, drafts: 0 } };
     const data = await res.json();
     return {
@@ -733,7 +824,7 @@ export async function fetchAdminPages(params?: { search?: string; status?: strin
 
 export async function fetchAdminPage(id: number): Promise<AdminCMSPage | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/pages/${id}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/pages/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data || null;
@@ -746,7 +837,7 @@ export async function fetchAdminPage(id: number): Promise<AdminCMSPage | null> {
 export async function saveAdminPage(id: number | null, payload: Partial<AdminCMSPage>) {
   const url = id ? `${API_BASE}/admin/pages/${id}` : `${API_BASE}/admin/pages`;
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, {
+  const res = await adminFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -755,7 +846,7 @@ export async function saveAdminPage(id: number | null, payload: Partial<AdminCMS
 }
 
 export async function deleteAdminPage(id: number) {
-  const res = await fetch(`${API_BASE}/admin/pages/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/pages/${id}`, {
     method: 'DELETE',
   });
   return res.json();
@@ -796,7 +887,7 @@ export async function fetchAdminBlogs(params?: { search?: string; category?: str
     if (params?.category && params.category !== 'all') q.append('category', params.category);
     if (params?.status && params.status !== 'all') q.append('status', params.status);
 
-    const res = await fetch(`${API_BASE}/admin/blogs?${q.toString()}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/blogs?${q.toString()}`, { cache: 'no-store' });
     if (!res.ok) return { blogs: [], meta: { total: 0, published: 0, drafts: 0, total_views: 0 } };
     const data = await res.json();
     return {
@@ -811,7 +902,7 @@ export async function fetchAdminBlogs(params?: { search?: string; category?: str
 
 export async function fetchAdminBlog(id: number): Promise<AdminBlogPost | null> {
   try {
-    const res = await fetch(`${API_BASE}/admin/blogs/${id}`, { cache: 'no-store' });
+    const res = await adminFetch(`${API_BASE}/admin/blogs/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data || null;
@@ -824,7 +915,7 @@ export async function fetchAdminBlog(id: number): Promise<AdminBlogPost | null> 
 export async function saveAdminBlog(id: number | null, payload: Partial<AdminBlogPost>) {
   const url = id ? `${API_BASE}/admin/blogs/${id}` : `${API_BASE}/admin/blogs`;
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, {
+  const res = await adminFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -833,7 +924,7 @@ export async function saveAdminBlog(id: number | null, payload: Partial<AdminBlo
 }
 
 export async function deleteAdminBlog(id: number) {
-  const res = await fetch(`${API_BASE}/admin/blogs/${id}`, {
+  const res = await adminFetch(`${API_BASE}/admin/blogs/${id}`, {
     method: 'DELETE',
   });
   return res.json();
@@ -842,7 +933,7 @@ export async function deleteAdminBlog(id: number) {
 export async function uploadAdminPhoto(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('photo', file);
-  const res = await fetch(`${API_BASE}/upload`, {
+  const res = await adminFetch(`${API_BASE}/upload`, {
     method: 'POST',
     body: formData,
   });

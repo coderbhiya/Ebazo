@@ -8,7 +8,7 @@ import {
   ExternalLink, LogOut, Printer, Scissors, Truck, 
   CreditCard, Tag, Star, BarChart3, Users, Settings,
   AlertTriangle, X, ShieldCheck, Layers, FileText, BookOpen,
-  Sparkles
+  Sparkles, Tags, LayoutTemplate
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -70,6 +70,7 @@ export default function AdminSidebar({
       items: [
         { name: 'Product Offerings', href: '/admin/products', icon: Package },
         { name: 'Product Categories', href: '/admin/categories', icon: Layers },
+        { name: 'Attributes & Variations', href: '/admin/attributes', icon: Tags },
         { 
           name: 'Inventory & Stock Levels', 
           href: '/admin/inventory', 
@@ -95,6 +96,7 @@ export default function AdminSidebar({
     {
       title: 'MARKETING & CMS',
       items: [
+        { name: 'Homepage Sections', href: '/admin/homepage', icon: LayoutTemplate },
         { name: 'Hero Banners & Slider', href: '/admin/settings?tab=hero', icon: Sparkles },
         { name: 'Blog & Articles', href: '/admin/blogs', icon: BookOpen },
         { name: 'Pages & Policy CMS', href: '/admin/pages', icon: FileText },
@@ -121,7 +123,7 @@ export default function AdminSidebar({
       )}
 
       <aside 
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 border-r border-stone-800/60 bg-[#0d0e12]/95 backdrop-blur-xl text-stone-300 flex flex-col justify-between flex-shrink-0 transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-dvh w-64 border-r border-stone-800/60 bg-[#0d0e12]/95 backdrop-blur-xl text-stone-300 flex flex-col justify-between flex-shrink-0 transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >

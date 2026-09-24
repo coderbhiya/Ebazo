@@ -8,7 +8,19 @@ import {
   Package, Truck, ArrowRight, ArrowLeft, Image as ImageIcon,
   MessageSquare, Sparkles
 } from 'lucide-react';
-import { fetchProductionOrders, updateOrderStatus, Order } from '@/lib/admin-api';
+import { fetchProductionOrders, updateOrderStatus, Order, OrderItem } from '@/lib/admin-api';
+import { getPrintRows } from '@/components/admin/OrderItemPrintFiles';
+
+const parseSpecs = (item: OrderItem) => {
+  try {
+    return typeof item.customization_json === 'string' ? JSON.parse(item.customization_json) : item.customization_json || null;
+  } catch {
+    return null;
+  }
+};
+
+const checkered =
+  'bg-[conic-gradient(#292524_25%,#1c1917_0_50%,#292524_0_75%,#1c1917_0)] bg-[length:10px_10px]';
 
 const PRODUCTION_STAGES = [
   { id: 'all', label: 'All Active Queue', icon: Printer },
@@ -166,106 +178,125 @@ export default function AdminProductionPage() {
           No orders currently in this production stage.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {orders.map((order) => {
-            const currentStage = order.production_stage || 'image_received';
-            return (
-              <div
-                key={order.id}
-                className="rounded-3xl border border-stone-800 bg-stone-950 p-5 space-y-4 shadow-sm hover:border-stone-700 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  {/* Order & Customer Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-stone-800">
-                    <div>
-                      <span className="font-mono font-bold text-sm text-primary-400 block">
-                        {order.order_number}
-                      </span>
-                      <span className="text-xs font-bold text-white">
-                        {order.customer_name} ({order.customer_phone})
-                      </span>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="inline-block rounded-lg bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 text-[10px] font-bold text-amber-300 uppercase">
-                        {currentStage.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Artwork & Items */}
-                  <div className="space-y-2">
-                    {order.items && order.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex gap-3 rounded-2xl border border-stone-800/80 bg-stone-900/60 p-3 items-center"
-                      >
-                        <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-stone-700 bg-stone-800">
-                          <img
-                            src={item.custom_photo_url || item.product_image}
-                            alt={item.product_title}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0 text-xs space-y-1">
-                          <h4 className="font-bold text-white text-sm truncate">{item.product_title}</h4>
-                          <p className="text-[11px] text-primary-300 font-bold">Shape: {item.shape_selected}</p>
-                          {item.custom_text && (
-                            <p className="text-[11px] text-amber-300 italic">Engraving: &ldquo;{item.custom_text}&rdquo;</p>
+        <div className="overflow-x-auto rounded-2xl border border-stone-800 bg-stone-950">
+          <table className="w-full min-w-[1000px] text-left text-xs">
+            <thead className="bg-stone-900/80 text-[10px] uppercase tracking-wider text-stone-400">
+              <tr>
+                <th className="px-3 py-3 font-semibold">Order</th>
+                <th className="px-3 py-3 font-semibold">Product</th>
+                <th className="px-3 py-3 font-semibold">Print files (cut-out, ready to print)</th>
+                <th className="px-3 py-3 font-semibold">Engraving</th>
+                <th className="px-3 py-3 font-semibold text-center">Qty</th>
+                <th className="px-3 py-3 font-semibold">Stage</th>
+                <th className="px-3 py-3 font-semibold text-right">Move</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => {
+                const currentStage = order.production_stage || 'image_received';
+                const items = order.items?.length ? order.items : [null];
+                return items.map((item, idx) => {
+                  const rows = item ? getPrintRows(item, parseSpecs(item)) : [];
+                  const first = idx === 0;
+                  const span = items.length;
+                  return (
+                    <tr key={`${order.id}-${item?.id ?? idx}`} className={`align-top ${first ? 'border-t border-stone-800' : ''}`}>
+                      {first && (
+                        <td rowSpan={span} className="px-3 py-3 border-r border-stone-800/60">
+                          <Link href={`/admin/orders/${order.id}`} className="font-mono font-bold text-primary-400 hover:underline">
+                            {order.order_number}
+                          </Link>
+                          <span className="block font-semibold text-white mt-0.5">{order.customer_name}</span>
+                          <span className="block text-[10px] text-stone-500">{order.customer_phone}</span>
+                          {(order.notes || order.admin_notes) && (
+                            <div className="mt-2 max-w-[200px] space-y-1 text-[10px] text-stone-300">
+                              {order.notes && <p><strong className="text-amber-400">Customer:</strong> {order.notes}</p>}
+                              {order.admin_notes && <p><strong className="text-primary-400">Studio:</strong> {order.admin_notes}</p>}
+                            </div>
                           )}
-                          <p className="text-[10px] text-stone-400">Qty: {item.quantity} units</p>
-                        </div>
-
-                        {/* Download Original Photo Asset */}
-                        <a
-                          href={item.custom_photo_url || item.product_image}
-                          target="_blank"
-                          rel="noreferrer"
-                          download
-                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-500 transition-colors flex-shrink-0 shadow-sm"
-                          title="Download High-Res Original Asset"
-                        >
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Internal Notes / Customer Note */}
-                  {(order.notes || order.admin_notes) && (
-                    <div className="rounded-xl bg-stone-900/80 border border-stone-800 p-2.5 text-[11px] text-stone-300">
-                      {order.notes && <p><strong className="text-amber-400">Customer Note:</strong> {order.notes}</p>}
-                      {order.admin_notes && <p className="mt-1"><strong className="text-primary-400">Studio Note:</strong> {order.admin_notes}</p>}
-                    </div>
-                  )}
-                </div>
-
-                {/* Pipeline Stage Transitions Footer */}
-                <div className="pt-3 border-t border-stone-800 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => regressStage(order.id, currentStage)}
-                    disabled={currentStage === 'image_received'}
-                    className="flex items-center gap-1 text-xs text-stone-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    <span>Previous Stage</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => advanceStage(order.id, currentStage)}
-                    disabled={currentStage === 'dispatched'}
-                    className="flex items-center gap-1.5 rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white hover:bg-primary-500 shadow-md transition-colors disabled:opacity-40"
-                  >
-                    <span>Advance Stage</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                        </td>
+                      )}
+                      <td className="px-3 py-3">
+                        {item ? (
+                          <>
+                            <span className="block max-w-[220px] truncate font-bold text-white">{item.product_title}</span>
+                            <span className="block text-[11px] font-bold text-primary-300">Shape: {item.shape_selected}</span>
+                          </>
+                        ) : (
+                          <span className="text-stone-500">No items</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {rows.length === 0 ? (
+                          <span className="text-[11px] text-stone-500">No customer photo</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {rows.map((r, i) => (
+                              <div key={i} className="w-[88px] text-center">
+                                {r.artwork ? (
+                                  <a href={r.artwork} target="_blank" rel="noreferrer" download title={`Download ${r.label} print file`}>
+                                    <img src={r.artwork} alt={r.label} className={`h-16 w-16 max-w-none mx-auto rounded-lg border border-stone-700 object-contain ${checkered}`} />
+                                    <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400">
+                                      <Download className="h-3 w-3" /> {r.label}
+                                    </span>
+                                  </a>
+                                ) : (
+                                  <div title="The cut-out print file was not saved — do not print the raw photo">
+                                    <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-amber-500/50 text-amber-400">
+                                      <AlertCircle className="h-5 w-5" />
+                                    </span>
+                                    <span className="mt-1 block text-[10px] font-bold text-amber-300">{r.label}: missing</span>
+                                  </div>
+                                )}
+                                {r.shape && <span className="block truncate text-[9px] text-stone-500">{r.shape}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 max-w-[160px]">
+                        {item?.custom_text ? (
+                          <span className="italic text-amber-300">&ldquo;{item.custom_text}&rdquo;</span>
+                        ) : (
+                          <span className="text-stone-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center font-bold text-white">{item?.quantity ?? '—'}</td>
+                      {first && (
+                        <>
+                          <td rowSpan={span} className="px-3 py-3 border-l border-stone-800/60">
+                            <span className="inline-block whitespace-nowrap rounded-lg bg-amber-500/10 border border-amber-500/30 px-2 py-1 text-[10px] font-bold uppercase text-amber-300">
+                              {currentStage.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td rowSpan={span} className="px-3 py-3 text-right">
+                            <div className="inline-flex flex-col items-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => advanceStage(order.id, currentStage)}
+                                disabled={currentStage === 'dispatched'}
+                                className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-primary-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-primary-500 disabled:opacity-40"
+                              >
+                                Next stage <ArrowRight className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => regressStage(order.id, currentStage)}
+                                disabled={currentStage === 'image_received'}
+                                className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] text-stone-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                              >
+                                <ArrowLeft className="h-3.5 w-3.5" /> Previous
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

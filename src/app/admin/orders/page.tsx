@@ -12,6 +12,34 @@ import {
   fetchAdminOrders, updateOrderStatus, bulkUpdateOrderStatus, 
   Order, OrderItem 
 } from '@/lib/admin-api';
+import OrderItemPrintFiles, { getPrintRows } from '@/components/admin/OrderItemPrintFiles';
+
+const parseSpecs = (item: OrderItem) => {
+  try {
+    return typeof item.customization_json === 'string' ? JSON.parse(item.customization_json) : item.customization_json || null;
+  } catch {
+    return null;
+  }
+};
+
+// Print-file readiness for a whole order (every photo must have its cut-out print file)
+const printStatus = (order: Order) => {
+  let total = 0;
+  let missing = 0;
+  for (const item of order.items || []) {
+    const rows = getPrintRows(item, parseSpecs(item));
+    total += rows.length;
+    missing += rows.filter((r) => !r.artwork).length;
+  }
+  return { total, missing };
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  processing: 'bg-sky-950/60 text-sky-300 border-sky-500/30',
+  printing: 'bg-amber-950/60 text-amber-300 border-amber-500/30',
+  dispatched: 'bg-violet-950/60 text-violet-300 border-violet-500/30',
+  delivered: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30',
+};
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -255,7 +283,7 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      {/* Orders Grid */}
+      {/* Orders Table */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
           <RefreshCw className="h-8 w-8 text-primary-400 animate-spin" />
@@ -265,163 +293,142 @@ export default function AdminOrdersPage() {
           No orders match the selected search or filters.
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Select All Bar */}
-          <div className="flex items-center gap-2 px-2 text-xs font-bold text-stone-400">
-            <button
-              onClick={handleSelectAll}
-              className="flex items-center gap-1.5 hover:text-white"
-            >
-              {selectedIds.length === orders.length ? (
-                <CheckSquare className="h-4 w-4 text-primary-400" />
-              ) : (
-                <Square className="h-4 w-4 text-stone-500" />
-              )}
-              <span>Select All on Page</span>
-            </button>
-            <span>•</span>
-            <span>Showing {orders.length} of {pagination.total} orders</span>
-          </div>
-
-          {/* Cards */}
-          {orders.map((order) => {
-            const isSelected = selectedIds.includes(order.id);
-            return (
-              <div
-                key={order.id}
-                className={`rounded-3xl border transition-all p-5 sm:p-6 space-y-4 ${
-                  isSelected
-                    ? 'border-primary-500/60 bg-stone-950 shadow-lg shadow-primary-950/30'
-                    : 'border-stone-800 bg-stone-950 hover:border-stone-700'
-                }`}
-              >
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-800/80">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => handleToggleSelect(order.id)}
-                      className="text-stone-500 hover:text-primary-400"
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="h-5 w-5 text-primary-400" />
+        <div className="space-y-3">
+          <div className="overflow-x-auto rounded-2xl border border-stone-800 bg-stone-950">
+            <table className="w-full min-w-[980px] text-left text-xs">
+              <thead className="bg-stone-900/80 text-[10px] uppercase tracking-wider text-stone-400">
+                <tr>
+                  <th className="w-10 px-3 py-3">
+                    <button onClick={handleSelectAll} className="flex items-center hover:text-white" title="Select all on page">
+                      {selectedIds.length === orders.length ? (
+                        <CheckSquare className="h-4 w-4 text-primary-400" />
                       ) : (
-                        <Square className="h-5 w-5" />
+                        <Square className="h-4 w-4" />
                       )}
                     </button>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono font-bold text-sm text-primary-400">
-                        {order.order_number}
-                      </span>
-                      <span className="text-xs text-stone-500">•</span>
-                      <span className="text-xs font-bold text-white">
-                        {order.customer_name}
-                      </span>
-                      <span className="text-xs text-stone-400">
-                        ({order.customer_phone})
-                      </span>
-                      <span className="rounded-md bg-stone-900 border border-stone-800 px-2 py-0.5 text-[10px] font-mono text-stone-400">
-                        AWB: {order.tracking_number}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <span className="text-sm font-black text-white block">
-                        ₹{order.total_amount}
-                      </span>
-                      <span className={`inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                        order.payment_status === 'paid'
-                          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-amber-950/60 text-amber-400 border border-amber-500/20'
-                      }`}>
-                        {order.payment_method} • {order.payment_status}
-                      </span>
-                    </div>
-
-                    <select
-                      value={order.order_status}
-                      onChange={(e) => handleQuickStatusChange(order.id, e.target.value)}
-                      className="rounded-xl border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-bold text-white capitalize focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    >
-                      <option value="processing">Processing</option>
-                      <option value="printing">In Print Station</option>
-                      <option value="dispatched">Dispatched</option>
-                      <option value="delivered">Delivered</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Items Preview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {order.items && order.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex gap-3 rounded-2xl border border-stone-800/80 bg-stone-900/60 p-3 items-center"
-                    >
-                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-stone-700 bg-stone-800">
-                        <img
-                          src={item.custom_photo_url || item.product_image}
-                          alt={item.product_title}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0 text-xs space-y-0.5">
-                        <h4 className="font-bold text-white truncate">{item.product_title}</h4>
-                        <p className="text-[11px] text-primary-300 font-semibold">Shape: {item.shape_selected}</p>
-                        {item.custom_text && (
-                          <p className="text-[10px] text-stone-400 italic truncate">Engraving: &ldquo;{item.custom_text}&rdquo;</p>
+                  </th>
+                  <th className="px-3 py-3 font-semibold">Order</th>
+                  <th className="px-3 py-3 font-semibold">Customer</th>
+                  <th className="px-3 py-3 font-semibold">Items</th>
+                  <th className="px-3 py-3 font-semibold">Print files</th>
+                  <th className="px-3 py-3 font-semibold text-right">Total</th>
+                  <th className="px-3 py-3 font-semibold">Status</th>
+                  <th className="px-3 py-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-800/70">
+                {orders.map((order) => {
+                  const isSelected = selectedIds.includes(order.id);
+                  const ps = printStatus(order);
+                  const items = order.items || [];
+                  return (
+                    <tr key={order.id} className={`align-top transition-colors ${isSelected ? 'bg-primary-950/30' : 'hover:bg-stone-900/50'}`}>
+                      <td className="px-3 py-3">
+                        <button onClick={() => handleToggleSelect(order.id)} className="text-stone-500 hover:text-primary-400">
+                          {isSelected ? <CheckSquare className="h-4 w-4 text-primary-400" /> : <Square className="h-4 w-4" />}
+                        </button>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <Link href={`/admin/orders/${order.id}`} className="font-mono font-bold text-primary-400 hover:underline">
+                          {order.order_number}
+                        </Link>
+                        <span className="block text-[10px] text-stone-500 mt-0.5">
+                          {new Date(order.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="block font-bold text-white">{order.customer_name}</span>
+                        <span className="block text-[11px] text-stone-400">{order.customer_phone}</span>
+                        <span className="block max-w-[200px] truncate text-[10px] text-stone-500" title={`${order.city}, ${order.state} - ${order.pincode}`}>
+                          {order.city}, {order.state} - {order.pincode}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="space-y-1.5">
+                          {items.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex items-center gap-2">
+                              {item.print_ready_artwork_url || item.custom_photo_url || item.product_image ? (
+                                <img
+                                  src={item.print_ready_artwork_url || item.custom_photo_url || item.product_image}
+                                  alt=""
+                                  className="h-8 w-8 flex-shrink-0 rounded-md border border-stone-700 bg-stone-800 object-contain"
+                                />
+                              ) : (
+                                <span className="h-8 w-8 flex-shrink-0 rounded-md border border-stone-700 bg-stone-800" />
+                              )}
+                              <div className="min-w-0">
+                                <span className="block max-w-[220px] truncate font-semibold text-stone-200">{item.product_title}</span>
+                                <span className="block text-[10px] text-stone-500">
+                                  {item.shape_selected} · Qty {item.quantity}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {items.length > 3 && <span className="text-[10px] text-stone-500">+{items.length - 3} more</span>}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        {ps.total === 0 ? (
+                          <span className="text-[11px] text-stone-500">No photos</span>
+                        ) : ps.missing ? (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-950/50 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+                            <AlertCircle className="h-3 w-3" /> {ps.missing}/{ps.total} missing
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                            <CheckCircle2 className="h-3 w-3" /> {ps.total} ready
+                          </span>
                         )}
-                        <p className="text-[10px] text-stone-500">Qty: {item.quantity} • ₹{item.price}</p>
-                      </div>
-
-                      {/* Download High-Res Original */}
-                      <a
-                        href={item.custom_photo_url || item.product_image}
-                        target="_blank"
-                        rel="noreferrer"
-                        download
-                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600/20 text-primary-300 hover:bg-primary-600 hover:text-white transition-colors flex-shrink-0"
-                        title="Download Artwork File"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-xs text-stone-400 border-t border-stone-800/60">
-                  <div className="flex items-center gap-2 truncate max-w-xl">
-                    <MapPin className="h-3.5 w-3.5 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">
-                      {order.shipping_address}, {order.city}, {order.state} - {order.pincode}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-stone-500">
-                      {new Date(order.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <button
-                      onClick={() => openOrderModal(order)}
-                      className="flex items-center gap-1.5 font-bold text-primary-400 hover:text-primary-300 bg-stone-900 border border-stone-800 px-3 py-1 rounded-lg"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>Full Manifest & Edit</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+                      <td className="px-3 py-3 text-right whitespace-nowrap">
+                        <span className="block font-black text-white">₹{order.total_amount}</span>
+                        <span className={`inline-block mt-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                          order.payment_status === 'paid' ? 'bg-emerald-950/60 text-emerald-400' : 'bg-amber-950/60 text-amber-400'
+                        }`}>
+                          {order.payment_method} · {order.payment_status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <select
+                          value={order.order_status}
+                          onChange={(e) => handleQuickStatusChange(order.id, e.target.value)}
+                          className={`rounded-lg border px-2 py-1 text-[11px] font-bold capitalize focus:outline-none ${STATUS_STYLES[order.order_status] || 'border-stone-700 bg-stone-900 text-white'}`}
+                        >
+                          <option value="processing">Processing</option>
+                          <option value="printing">In Print Station</option>
+                          <option value="dispatched">Dispatched</option>
+                          <option value="delivered">Delivered</option>
+                        </select>
+                        <span className="mt-1 block font-mono text-[10px] text-stone-500">AWB {order.tracking_number}</span>
+                      </td>
+                      <td className="px-3 py-3 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-primary-500"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Link>
+                          <button
+                            onClick={() => openOrderModal(order)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-900 px-2.5 py-1.5 text-[11px] font-bold text-stone-300 hover:text-white"
+                            title="Quick edit status, courier & notes"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" /> Quick edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination Controls */}
-          <div className="flex items-center justify-between pt-4 border-t border-stone-800 text-xs">
+          <div className="flex items-center justify-between text-xs">
             <span className="text-stone-400">
-              Page <strong>{pagination.page}</strong> of <strong>{pagination.total_pages}</strong>
+              Showing {orders.length} of {pagination.total} orders · Page <strong>{pagination.page}</strong> of <strong>{pagination.total_pages}</strong>
             </span>
 
             <div className="flex items-center gap-2">
@@ -516,38 +523,17 @@ export default function AdminOrdersPage() {
               <span className="font-bold text-stone-400 uppercase text-[10px] tracking-wider block">
                 Manufacture Items & Assets ({selectedOrder.items?.length || 0})
               </span>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {selectedOrder.items && selectedOrder.items.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-stone-950 p-4 border border-stone-800"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={item.custom_photo_url || item.product_image}
-                        alt={item.product_title}
-                        className="h-16 w-16 rounded-xl object-cover border border-stone-700 bg-stone-900 flex-shrink-0"
-                      />
-                      <div className="space-y-0.5 text-xs">
-                        <h5 className="font-bold text-white text-sm">{item.product_title}</h5>
-                        <p className="text-primary-300 font-bold">Cut Contour: {item.shape_selected}</p>
-                        {item.custom_text && (
-                          <p className="text-stone-400 italic">Custom Text: &ldquo;{item.custom_text}&rdquo;</p>
-                        )}
-                        <p className="text-stone-500 text-[11px]">Quantity: {item.quantity} • Unit Rate: ₹{item.price}</p>
-                      </div>
+                  <div key={item.id} className="space-y-2 rounded-2xl bg-stone-950 p-3 border border-stone-800">
+                    <div className="text-xs">
+                      <h5 className="font-bold text-white text-sm">{item.product_title}</h5>
+                      <p className="text-primary-300 font-bold">Cut Contour: {item.shape_selected}</p>
+                      {item.custom_text && <p className="text-stone-400 italic">Custom Text: &ldquo;{item.custom_text}&rdquo;</p>}
+                      <p className="text-stone-500 text-[11px]">Quantity: {item.quantity} • Unit Rate: ₹{item.price}</p>
                     </div>
-
-                    <a
-                      href={item.custom_photo_url || item.product_image}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
-                      className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white hover:bg-primary-500 flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Download High-Res (1200 DPI)</span>
-                    </a>
+                    {/* Real cut-out print files (this used to download the raw photo labelled "High-Res") */}
+                    <OrderItemPrintFiles item={item} specs={parseSpecs(item)} />
                   </div>
                 ))}
               </div>

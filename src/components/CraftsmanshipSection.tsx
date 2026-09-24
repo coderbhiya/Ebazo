@@ -2,30 +2,22 @@
 
 import React from 'react';
 import { Sparkles, ShieldCheck, Cpu, PackageCheck, HeartHandshake } from 'lucide-react';
+import { CraftPillar } from '@/lib/api';
+import Carousel from './home/Carousel';
 
-export default function CraftsmanshipSection() {
-  const pillars = [
-    {
-      icon: Cpu,
-      title: 'Precision UV Ink Technology',
-      desc: 'Cured instantaneously with ultraviolet light. Yields 1200+ DPI photographic depth that resists fading, moisture, and sunlight for years.'
-    },
-    {
-      icon: Sparkles,
-      title: 'Diamond-Polished Cast Acrylic',
-      desc: 'We strictly use optical-grade 3mm and 5mm cast acrylic sheets. Smooth, flame-polished crystal edges without burrs or jagged lines.'
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Neodymium & Heavy-Duty Hardware',
-      desc: 'Fridge magnets boast grade-N52 neodymium cores with 10x magnetic pull. Keychains feature 304 anti-rust stainless steel connectors.'
-    },
-    {
-      icon: PackageCheck,
-      title: 'Damage-Proof Gift Packaging',
-      desc: 'Every finished piece undergoes rigorous quality checks before being secured in shock-absorbent foam and high-grade unboxing sleeves.'
-    }
-  ];
+interface Props {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  pillars: CraftPillar[];
+}
+
+const ICONS = [Cpu, Sparkles, ShieldCheck, PackageCheck];
+
+// "Why us" section (Admin > Homepage > Craftsmanship)
+export default function CraftsmanshipSection({ eyebrow, title, subtitle, pillars: items }: Props) {
+  if (items.length === 0) return null;
+  const pillars = items.map((p, i) => ({ ...p, icon: ICONS[i % ICONS.length] }));
 
   return (
     <section className="py-12 sm:py-20 bg-secondary-900 text-stone-100 relative overflow-hidden">
@@ -34,23 +26,21 @@ export default function CraftsmanshipSection() {
 
       <div className="relative mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary-500/30 bg-primary-950/60 px-3.5 py-1 text-xs font-bold text-primary-300 backdrop-blur-md mb-3">
+          {eyebrow && <div className="inline-flex items-center gap-2 rounded-full border border-primary-500/30 bg-primary-950/60 px-3.5 py-1 text-xs font-bold text-primary-300 backdrop-blur-md mb-3">
             <HeartHandshake className="h-3.5 w-3.5 text-primary-400" />
-            <span>The Ebanzo Difference</span>
-          </div>
+            <span>{eyebrow}</span>
+          </div>}
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Obsessive Craftsmanship in Every Millimeter
+            {title}
           </h2>
-          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-400">
-            Unlike cheap laminated paper prints that peel within weeks, Ebanzo keepsakes are fused directly into durable acrylic and engineered to last a lifetime.
-          </p>
+          {subtitle && <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-400">{subtitle}</p>}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <Carousel className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-3 scroll-px-3 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:gap-8 md:overflow-visible md:px-0 md:scroll-px-0 lg:grid-cols-4">
           {pillars.map((p, i) => (
             <div
               key={i}
-              className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm hover:border-primary-400/50 hover:bg-white/10 transition-all duration-300"
+              className="w-[80%] flex-shrink-0 snap-start md:w-auto rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm hover:border-primary-400/50 hover:bg-white/10 transition-all duration-300"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg mb-5">
                 <p.icon className="h-6 w-6 text-primary-200" />
@@ -59,7 +49,7 @@ export default function CraftsmanshipSection() {
               <p className="text-xs text-stone-400 leading-relaxed">{p.desc}</p>
             </div>
           ))}
-        </div>
+        </Carousel>
       </div>
     </section>
   );

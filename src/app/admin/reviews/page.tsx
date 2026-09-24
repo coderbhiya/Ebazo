@@ -123,101 +123,97 @@ export default function AdminReviewsPage() {
             No reviews found under this filter.
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredReviews.map((r) => (
-              <div
-                key={r.id}
-                className="rounded-2xl border border-stone-800 bg-stone-900/60 p-4 space-y-3 hover:border-stone-700 transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-800/80">
-                  <div className="flex items-center gap-3">
-                    <div className="flex text-amber-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`h-4 w-4 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-stone-700'}`} 
-                        />
-                      ))}
-                    </div>
-                    <span className="font-bold text-white text-xs">{r.customer_name}</span>
-                    <span className="text-[10px] text-stone-500">({r.customer_email || 'Verified Buyer'})</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {r.is_featured === 1 && (
-                      <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[9px] font-black uppercase">
-                        Homepage Featured
+          <div className="overflow-x-auto rounded-xl border border-stone-800">
+            <table className="w-full min-w-[900px] text-left text-xs">
+              <thead className="bg-stone-900/80 text-[10px] uppercase tracking-wider text-stone-400">
+                <tr>
+                  <th className="px-3 py-3 font-semibold">Rating</th>
+                  <th className="px-3 py-3 font-semibold">Reviewer</th>
+                  <th className="px-3 py-3 font-semibold">Review</th>
+                  <th className="px-3 py-3 font-semibold">Product</th>
+                  <th className="px-3 py-3 font-semibold">Status</th>
+                  <th className="px-3 py-3 font-semibold">Date</th>
+                  <th className="px-3 py-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-800/70">
+                {filteredReviews.map((r) => (
+                  <tr key={r.id} className="align-top hover:bg-stone-900/50">
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-stone-700'}`} />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="block font-bold text-white">{r.customer_name}</span>
+                      <span className="block text-[10px] text-stone-500">{r.customer_email || 'Verified Buyer'}</span>
+                    </td>
+                    <td className="px-3 py-3 max-w-[360px]">
+                      {r.title && <span className="block font-bold text-white">&ldquo;{r.title}&rdquo;</span>}
+                      <p className="leading-relaxed text-stone-300">{r.comment}</p>
+                    </td>
+                    <td className="px-3 py-3 max-w-[180px] text-primary-300 font-semibold">{r.product_title || '—'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        r.status === 'approved'
+                          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
+                          : r.status === 'rejected'
+                          ? 'bg-rose-950/60 text-rose-300 border border-rose-500/20'
+                          : 'bg-amber-950/60 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {r.status}
                       </span>
-                    )}
-
-                    <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
-                      r.status === 'approved'
-                        ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/20'
-                        : r.status === 'rejected'
-                        ? 'bg-rose-950/60 text-rose-300 border border-rose-500/20'
-                        : 'bg-amber-950/60 text-amber-400 border border-amber-500/20'
-                    }`}>
-                      {r.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  {r.title && <h4 className="font-bold text-white text-xs">&ldquo;{r.title}&rdquo;</h4>}
-                  <p className="text-xs text-stone-300 leading-relaxed">{r.comment}</p>
-                  {r.product_title && (
-                    <p className="text-[11px] text-primary-400 font-semibold pt-1">
-                      Product: {r.product_title}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 text-xs">
-                  <span className="text-[10px] text-stone-500">
-                    Submitted on {new Date(r.created_at || '').toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleToggleFeatured(r)}
-                      className={`px-3 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
-                        r.is_featured === 1
-                          ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-                          : 'border-stone-700 bg-stone-800 text-stone-300 hover:text-white'
-                      }`}
-                    >
-                      {r.is_featured === 1 ? '★ Featured' : '☆ Feature on Home'}
-                    </button>
-
-                    {r.status !== 'approved' && (
-                      <button
-                        onClick={() => handleUpdateStatus(r.id, 'approved')}
-                        className="rounded-lg bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-400 hover:bg-emerald-900/60"
-                      >
-                        Approve
-                      </button>
-                    )}
-
-                    {r.status !== 'rejected' && (
-                      <button
-                        onClick={() => handleUpdateStatus(r.id, 'rejected')}
-                        className="rounded-lg bg-rose-950/60 border border-rose-500/30 px-3 py-1 text-[11px] font-bold text-rose-400 hover:bg-rose-900/60"
-                      >
-                        Reject
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDelete(r.id)}
-                      className="p-1 rounded-lg text-stone-500 hover:text-rose-400"
-                      title="Delete review"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                      {r.is_featured === 1 && (
+                        <span className="mt-1 block text-[9px] font-black uppercase text-amber-300">★ Featured</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-[11px] text-stone-400">
+                      {new Date(r.created_at || '').toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleToggleFeatured(r)}
+                          title={r.is_featured === 1 ? 'Remove from homepage' : 'Feature on homepage'}
+                          className={`rounded-lg border px-2 py-1 text-[11px] font-bold ${
+                            r.is_featured === 1
+                              ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                              : 'border-stone-700 bg-stone-800 text-stone-300 hover:text-white'
+                          }`}
+                        >
+                          {r.is_featured === 1 ? '★' : '☆'}
+                        </button>
+                        {r.status !== 'approved' && (
+                          <button
+                            onClick={() => handleUpdateStatus(r.id, 'approved')}
+                            className="rounded-lg bg-emerald-950/60 border border-emerald-500/30 px-2 py-1 text-[11px] font-bold text-emerald-400 hover:bg-emerald-900/60"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {r.status !== 'rejected' && (
+                          <button
+                            onClick={() => handleUpdateStatus(r.id, 'rejected')}
+                            className="rounded-lg bg-rose-950/60 border border-rose-500/30 px-2 py-1 text-[11px] font-bold text-rose-400 hover:bg-rose-900/60"
+                          >
+                            Reject
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          className="rounded-lg p-1 text-stone-500 hover:text-rose-400"
+                          title="Delete review"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

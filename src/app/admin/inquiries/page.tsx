@@ -69,58 +69,66 @@ export default function AdminInquiriesPage() {
           No customer inquiries received yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {inquiries.map((inq) => (
-            <div
-              key={inq.id}
-              className="rounded-3xl border border-stone-800 bg-stone-950 p-6 space-y-3"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-800">
-                <div>
-                  <h3 className="text-sm font-bold text-white">{inq.name}</h3>
-                  <div className="flex items-center gap-3 text-xs text-stone-400 mt-0.5">
-                    <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {inq.email}</span>
-                    {inq.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {inq.phone}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-stone-500">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                    inq.status === 'unread' 
-                      ? 'bg-amber-950/60 text-amber-400 border border-amber-500/30' 
-                      : 'bg-stone-900 text-stone-400'
-                  }`}>
-                    {inq.status || 'unread'}
-                  </span>
-                  <Clock className="h-3 w-3 ml-1" />
-                  <span>{new Date(inq.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              </div>
-
-              <div>
-                <span className="inline-block rounded-lg bg-primary-950/60 border border-primary-500/30 px-2.5 py-0.5 text-[10px] font-bold text-primary-300 uppercase mb-2">
-                  {inq.subject || 'General Inquiry'}
-                </span>
-                <p className="text-xs text-stone-300 leading-relaxed bg-stone-900/60 rounded-xl p-3 border border-stone-800/80">
-                  {inq.message}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  onClick={() => handleToggleStatus(inq)}
-                  className="rounded-xl border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-semibold text-stone-300 hover:text-white"
-                >
-                  Mark as {inq.status === 'unread' ? 'Read' : 'Unread'}
-                </button>
-                <a
-                  href={`mailto:${inq.email}?subject=Re: ${encodeURIComponent(inq.subject || 'Ebanzo Inquiry')}`}
-                  className="rounded-xl bg-primary-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-primary-500 transition-colors"
-                >
-                  Reply via Email
-                </a>
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto rounded-2xl border border-stone-800 bg-stone-950">
+          <table className="w-full min-w-[860px] text-left text-xs">
+            <thead className="bg-stone-900/80 text-[10px] uppercase tracking-wider text-stone-400">
+              <tr>
+                <th className="px-3 py-3 font-semibold">Status</th>
+                <th className="px-3 py-3 font-semibold">From</th>
+                <th className="px-3 py-3 font-semibold">Subject & message</th>
+                <th className="px-3 py-3 font-semibold">Received</th>
+                <th className="px-3 py-3 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-800/70">
+              {inquiries.map((inq) => (
+                <tr key={inq.id} className={`align-top ${inq.status === 'unread' ? 'bg-amber-950/10' : ''} hover:bg-stone-900/50`}>
+                  <td className="px-3 py-3">
+                    <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      inq.status === 'unread'
+                        ? 'bg-amber-950/60 text-amber-400 border border-amber-500/30'
+                        : 'bg-stone-900 text-stone-400'
+                    }`}>
+                      {inq.status || 'unread'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <span className={`block text-white ${inq.status === 'unread' ? 'font-bold' : 'font-semibold'}`}>{inq.name}</span>
+                    <span className="flex items-center gap-1 text-[11px] text-stone-400"><Mail className="h-3 w-3" /> {inq.email}</span>
+                    {inq.phone && <span className="flex items-center gap-1 text-[11px] text-stone-400"><Phone className="h-3 w-3" /> {inq.phone}</span>}
+                  </td>
+                  <td className="px-3 py-3 max-w-[420px]">
+                    <span className="inline-block rounded bg-primary-950/60 border border-primary-500/30 px-2 py-0.5 text-[10px] font-bold uppercase text-primary-300">
+                      {inq.subject || 'General Inquiry'}
+                    </span>
+                    <p className="mt-1.5 whitespace-pre-line leading-relaxed text-stone-300">{inq.message}</p>
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap text-[11px] text-stone-400">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(inq.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleToggleStatus(inq)}
+                        className="rounded-lg border border-stone-700 bg-stone-900 px-2.5 py-1.5 text-[11px] font-semibold text-stone-300 hover:text-white"
+                      >
+                        Mark {inq.status === 'unread' ? 'read' : 'unread'}
+                      </button>
+                      <a
+                        href={`mailto:${inq.email}?subject=Re: ${encodeURIComponent(inq.subject || 'Ebanzo Inquiry')}`}
+                        className="rounded-lg bg-primary-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-primary-500"
+                      >
+                        Reply
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

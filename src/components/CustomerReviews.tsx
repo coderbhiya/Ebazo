@@ -1,112 +1,97 @@
-'use client';
-
 import React from 'react';
-import { Star, CheckCircle2, Quote } from 'lucide-react';
+import Link from 'next/link';
+import { Star, CheckCircle2 } from 'lucide-react';
+import { HomeReview } from '@/lib/api';
+import Carousel from './home/Carousel';
 
-const reviews = [
-  {
-    name: 'Pooja K.',
-    city: 'Mumbai',
-    product: 'Abstract Wavy Edge Photo Fridge Magnet',
-    rating: 5,
-    date: '3 days ago',
-    comment: 'The print quality is breathtaking! My husband and I were stunned by how vibrant the colors came out on our wedding photo. The wavy edge looks so chic on our fridge!',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    name: 'Rohan Sharma',
-    city: 'Bengaluru',
-    product: 'Personalized Round Photo Keychain',
-    rating: 5,
-    date: '1 week ago',
-    comment: 'Got 3 matching keychains for my college buddies. Double-sided photo clarity is 10/10 and the acrylic is solid and thick. Shipped in just 3 days to Whitefield!',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    name: 'Ananya Deshmukh',
-    city: 'Pune',
-    product: 'Geometric Hexagon Photo Mini Gallery',
-    rating: 5,
-    date: '2 weeks ago',
-    comment: 'Ordered the hexagon set of 3 for my work desk. Everyone at office stopped by to ask where I got it from. The live preview tool was super helpful to adjust the framing.',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-  },
-  {
-    name: 'Karan Mehra',
-    city: 'Delhi NCR',
-    product: 'Custom Rearview Car Hanging Charm',
-    rating: 5,
-    date: '2 weeks ago',
-    comment: 'The tassel and acrylic charm look so classy in my new car. It has already survived extreme Delhi heat without any fading or yellowing. Top-notch gifting brand!',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  }
-];
+interface Props {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  reviews: HomeReview[];
+  stats?: { count: number; average: number | null };
+}
 
-export default function CustomerReviews() {
+function timeAgo(date: string): string {
+  const days = Math.floor((Date.now() - new Date(date.replace(' ', 'T')).getTime()) / 86400000);
+  if (!Number.isFinite(days) || days < 1) return 'Today';
+  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (days < 30) return `${Math.floor(days / 7)} week${days >= 14 ? 's' : ''} ago`;
+  if (days < 365) return `${Math.floor(days / 30)} month${days >= 60 ? 's' : ''} ago`;
+  return `${Math.floor(days / 365)} year${days >= 730 ? 's' : ''} ago`;
+}
+
+// Approved customer reviews (Admin > Reviews; featured ones first)
+export default function CustomerReviews({ eyebrow, title, subtitle, reviews, stats }: Props) {
+  if (reviews.length === 0) return null;
   return (
     <section className="py-10 sm:py-20 bg-stone-50 border-b border-stone-200">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div className="text-center max-w-xl mx-auto mb-8 sm:mb-14">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary-600">
-            Real Stories, Real Smiles
-          </span>
-          <h2 className="mt-1 sm:mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900">
-            Loved by Over 7,000+ Gift Givers
-          </h2>
-          <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-4 w-4 fill-primary-500 text-primary-500" />
-            ))}
-            <span className="ml-2 text-xs sm:text-sm font-bold text-stone-800">4.9 out of 5</span>
-            <span className="text-[11px] sm:text-xs text-stone-500">(1,400+ Verified Reviews)</span>
-          </div>
+          {eyebrow && <span className="text-xs font-bold uppercase tracking-wider text-primary-600">{eyebrow}</span>}
+          <h2 className="mt-1 sm:mt-2 text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900">{title}</h2>
+          {subtitle && <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-stone-600">{subtitle}</p>}
+          {stats && stats.count > 0 && stats.average !== null && (
+            <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${i < Math.round(stats.average!) ? 'fill-primary-500 text-primary-500' : 'text-stone-300'}`}
+                />
+              ))}
+              <span className="ml-2 text-xs sm:text-sm font-bold text-stone-800">{stats.average} out of 5</span>
+              <span className="text-[11px] sm:text-xs text-stone-500">
+                ({stats.count} Verified Review{stats.count > 1 ? 's' : ''})
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {reviews.map((rev, idx) => (
+        <Carousel className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-3 scroll-px-3 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:scroll-px-0 lg:grid-cols-4">
+          {reviews.map((rev) => (
             <div
-              key={idx}
-              className="flex flex-col justify-between rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:shadow-xl hover:border-primary-300 transition-all duration-300"
+              key={rev.id}
+              className="w-[82%] flex-shrink-0 snap-start md:w-auto flex flex-col justify-between rounded-3xl border border-stone-200 bg-white p-6 shadow-sm hover:shadow-xl hover:border-primary-300 transition-all duration-300"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex gap-1">
-                    {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} className="h-3.5 w-3.5 fill-primary-500 text-primary-500" />
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3.5 w-3.5 ${i < rev.rating ? 'fill-primary-500 text-primary-500' : 'text-stone-300'}`}
+                      />
                     ))}
                   </div>
-                  <span className="text-[11px] text-stone-400">{rev.date}</span>
+                  <span className="text-[11px] text-stone-400">{timeAgo(rev.created_at)}</span>
                 </div>
-
-                <p className="text-xs text-stone-700 italic leading-relaxed mb-4">
-                  &ldquo;{rev.comment}&rdquo;
-                </p>
+                {rev.title && <h3 className="text-sm font-bold text-stone-900 mb-1">{rev.title}</h3>}
+                <p className="text-xs text-stone-700 italic leading-relaxed mb-4">&ldquo;{rev.comment}&rdquo;</p>
               </div>
 
-              <div className="pt-4 border-t border-stone-100">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={rev.avatar}
-                    alt={rev.name}
-                    className="h-10 w-10 rounded-full object-cover border border-primary-200"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <h4 className="text-xs font-bold text-stone-900">{rev.name}</h4>
-                      <span title="Verified Buyer">
-                        <CheckCircle2 className="h-3 w-3 text-primary-600" />
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-stone-500">{rev.city} • Verified Buyer</p>
-                    <p className="text-[10px] font-semibold text-primary-600 truncate max-w-[150px]">
-                      {rev.product}
-                    </p>
+              <div className="pt-4 border-t border-stone-100 flex items-center gap-3">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-black text-primary-700">
+                  {rev.customer_name.trim().charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <h4 className="text-xs font-bold text-stone-900 truncate">{rev.customer_name}</h4>
+                    <CheckCircle2 className="h-3 w-3 flex-shrink-0 text-primary-600" />
                   </div>
+                  <p className="text-[10px] text-stone-500">Verified Buyer</p>
+                  {rev.product_title && (
+                    <Link
+                      href={rev.product_slug ? `/product/${rev.product_slug}` : '/shop'}
+                      className="block text-[10px] font-semibold text-primary-600 truncate max-w-[170px] hover:underline"
+                    >
+                      {rev.product_title}
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
           ))}
-        </div>
+        </Carousel>
       </div>
     </section>
   );

@@ -7,31 +7,25 @@ import { useCart } from '@/context/CartContext';
 import { formatProductTitle } from '@/lib/api';
 
 export default function CartDrawer() {
-  const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, subtotal, shippingFee, total } = useCart();
-  const [couponCode, setCouponCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
+  const {
+    cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, subtotal, shippingFee, total,
+    shippingRule, couponCode, couponDiscount, couponMessage, couponValid, applyCoupon, removeCoupon,
+  } = useCart();
+  const [codeInput, setCodeInput] = useState('');
+  const [applying, setApplying] = useState(false);
 
   if (!isCartOpen) return null;
 
-  const freeShippingThreshold = 499;
-  const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
-  const amountNeeded = Math.max(0, freeShippingThreshold - subtotal);
+  // Free-delivery hint from Admin > Settings > Shipping
+  const freeAbove = shippingRule.fee > 0 ? shippingRule.freeAbove : 0;
+  const amountNeeded = Math.max(0, freeAbove - subtotal);
 
-  const applyCoupon = () => {
-    if (couponCode.trim().toUpperCase() === 'EBANZO10') {
-      setDiscountPercent(10);
-      setCouponSuccess('10% OFF coupon applied!');
-      setCouponError('');
-    } else {
-      setCouponError('Invalid coupon code. Try EBANZO10');
-      setCouponSuccess('');
-    }
+  const onApply = async () => {
+    setApplying(true);
+    const ok = await applyCoupon(codeInput);
+    setApplying(false);
+    if (ok) setCodeInput('');
   };
-
-  const discountAmount = (subtotal * discountPercent) / 100;
-  const finalTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -60,16 +54,26 @@ export default function CartDrawer() {
             </button>
           </div>
 
-          {/* Free Delivery Bar */}
+          {/* Free Delivery Bar (Admin > Settings > Shipping) */}
           <div className="border-b border-stone-100 bg-primary-50/70 px-4 sm:px-6 py-2.5 sm:py-3">
             <div className="flex items-center justify-between text-xs font-semibold text-primary-900">
               <span className="flex items-center gap-1.5 text-primary-700 font-bold">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span>100% FREE Pan-India Express Shipping on all orders!</span>
+                <span>
+                  {shippingRule.fee <= 0
+                    ? 'FREE shipping on all orders!'
+                    : shippingFee === 0 && subtotal > 0
+                    ? 'You have unlocked FREE shipping!'
+                    : freeAbove > 0
+                    ? `Add ₹${amountNeeded.toFixed(0)} more for FREE shipping`
+                    : `Shipping: ₹${shippingRule.fee}`}
+                </span>
               </span>
-              <span className="rounded-full bg-primary-600 text-white px-2 py-0.5 text-[10px] font-extrabold uppercase">
-                ₹0 Ship
-              </span>
+              {shippingFee === 0 && (
+                <span className="rounded-full bg-primary-600 text-white px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                  ₹0 Ship
+                </span>
+              )}
             </div>
           </div>
 
@@ -155,7 +159,7 @@ export default function CartDrawer() {
                             </span>
                           )}
                           <span className="inline-block rounded-md bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
-                            Shape: {item.shape}
+                            {item.variationLabel ? `Option: ${item.variationLabel}` : `Shape: ${item.shape}`}
                           </span>
                           {item.customText && (
                             <span className="inline-block rounded-md bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 text-[10px] font-semibold truncate max-w-[120px]">
@@ -202,28 +206,43 @@ export default function CartDrawer() {
           {/* Footer & Checkout */}
           {cart.length > 0 && (
             <div className="border-t border-stone-200 bg-stone-50 p-4 sm:p-6">
-              {/* Coupon Bar */}
+              {/* Coupon Bar (codes from Admin > Coupons) */}
               <div className="mb-4">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Coupon Code (e.g. EBANZO10)"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-semibold uppercase text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-primary-600"
-                    />
-                    <Tag className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                {couponCode ? (
+                  <div className={`flex items-center justify-between rounded-xl border px-3.5 py-2 text-xs font-semibold ${
+                    couponValid ? 'border-primary-200 bg-primary-50 text-primary-700' : 'border-rose-200 bg-rose-50 text-rose-600'
+                  }`}>
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="h-3.5 w-3.5" />
+                      {couponValid ? couponMessage || `${couponCode} applied` : `${couponCode}: ${couponMessage}`}
+                    </span>
+                    <button onClick={removeCoupon} className="font-bold underline">Remove</button>
                   </div>
-                  <button
-                    onClick={applyCoupon}
-                    className="rounded-xl bg-secondary-900 px-4 py-2 text-xs font-bold text-white hover:bg-primary-600 transition-colors"
-                  >
-                    Apply
-                  </button>
-                </div>
-                {couponSuccess && <p className="mt-1 text-[11px] text-primary-600 font-medium">{couponSuccess}</p>}
-                {couponError && <p className="mt-1 text-[11px] text-rose-500 font-medium">{couponError}</p>}
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Coupon Code"
+                          value={codeInput}
+                          onChange={(e) => setCodeInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && onApply()}
+                          className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-xs font-semibold uppercase text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                        />
+                        <Tag className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                      </div>
+                      <button
+                        onClick={onApply}
+                        disabled={applying || !codeInput.trim()}
+                        className="rounded-xl bg-secondary-900 px-4 py-2 text-xs font-bold text-white hover:bg-primary-600 transition-colors disabled:opacity-50"
+                      >
+                        {applying ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponMessage && <p className="mt-1 text-[11px] text-rose-500 font-medium">{couponMessage}</p>}
+                  </>
+                )}
               </div>
 
               {/* Financial Calculation */}
@@ -232,10 +251,10 @@ export default function CartDrawer() {
                   <span>Subtotal</span>
                   <span className="font-semibold text-stone-900">₹{subtotal.toFixed(2)}</span>
                 </div>
-                {discountAmount > 0 && (
+                {couponDiscount > 0 && (
                   <div className="flex justify-between text-primary-600 font-medium">
-                    <span>Discount ({discountPercent}%)</span>
-                    <span>-₹{discountAmount.toFixed(2)}</span>
+                    <span>Discount ({couponCode})</span>
+                    <span>-₹{couponDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -244,7 +263,7 @@ export default function CartDrawer() {
                 </div>
                 <div className="flex justify-between border-t border-stone-200 pt-2 text-sm font-extrabold text-stone-900">
                   <span>Total Amount</span>
-                  <span className="text-primary-700">₹{finalTotal.toFixed(2)}</span>
+                  <span className="text-primary-700">₹{total.toFixed(2)}</span>
                 </div>
               </div>
 

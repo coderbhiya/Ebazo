@@ -1,12 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Category, fetchCategories, whatsappLink } from '@/lib/api';
+import { useSiteSettings } from '@/lib/site-settings';
 import { Sparkles, MessageCircle, Mail, Phone, MapPin, Send, Check } from 'lucide-react';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  // Texts and links from Admin > Homepage; collections from Admin > Categories
+  const site = useSiteSettings();
+  const [categories, setCategories] = useState<Category[]>([]);
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+  }, []);
 
   const handleNewsletter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +39,11 @@ export default function Footer() {
               />
             </Link>
             <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
-              India’s premier destination for high-quality personalized gifting and premium acrylic decor. From custom car accessories to elegant tabletop keepsakes, we deliver excellence directly to your doorstep.
+              {site.footer_about}
             </p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="https://wa.me/919876543210?text=Hi%20Ebanzo%20Team,%20I%20have%20a%20question%20about%20photo%20customization"
+                href={whatsappLink(site.whatsapp_number, site.whatsapp_message)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-colors shadow-sm"
@@ -50,13 +58,13 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Collections</h4>
             <ul className="space-y-2 text-xs text-stone-400">
-              <li><Link href="/shop?category=fridge-magnet" className="hover:text-primary-400 transition-colors">Fridge Magnets</Link></li>
-              <li><Link href="/shop?category=key-chains" className="hover:text-primary-400 transition-colors">Custom Keychains</Link></li>
-              <li><Link href="/shop?category=car-hanging" className="hover:text-primary-400 transition-colors">Car Hangings</Link></li>
-              <li><Link href="/shop?category=car-stand" className="hover:text-primary-400 transition-colors">Dashboard Stands</Link></li>
-              <li><Link href="/shop?category=mini-gallary" className="hover:text-primary-400 transition-colors">Mini Galleries</Link></li>
-              <li><Link href="/shop?category=photostand" className="hover:text-primary-400 transition-colors">Acrylic Photostands</Link></li>
-              <li><Link href="/shop?category=wallet-card" className="hover:text-primary-400 transition-colors">Engraved Wallet Cards</Link></li>
+              {categories
+                .filter((cat) => !cat.parent_id && (cat.product_count ?? 1) > 0)
+                .map((cat) => (
+                  <li key={cat.id}>
+                    <Link href={`/shop?category=${cat.slug}`} className="hover:text-primary-400 transition-colors">{cat.name}</Link>
+                  </li>
+                ))}
             </ul>
           </div>
 
@@ -79,7 +87,7 @@ export default function Footer() {
           <div className="sm:col-span-2 lg:col-span-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Get Special Offers</h4>
             <p className="text-xs text-stone-400">
-              Subscribe to unlock 10% off your first personalized keepsake order and receive exclusive festival discounts.
+              {site.newsletter_text}
             </p>
 
             <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2">
@@ -102,12 +110,12 @@ export default function Footer() {
 
             {subscribed && (
               <p className="text-xs text-primary-300 font-medium flex items-center gap-1">
-                <Check className="h-3.5 w-3.5" /> Welcome! Use coupon <strong>EBANZO10</strong> for 10% off.
+                <Check className="h-3.5 w-3.5" /> Welcome!{site.newsletter_coupon ? <> Use coupon <strong>{site.newsletter_coupon}</strong> on your order.</> : ' You are subscribed.'}
               </p>
             )}
 
             <div className="pt-2 text-[11px] text-stone-500">
-              <span>⚡ Dispatched within 24-48 hours across 2,000+ Indian pincodes.</span>
+              <span>{site.footer_dispatch_note}</span>
             </div>
           </div>
 
@@ -115,7 +123,7 @@ export default function Footer() {
 
         {/* Bottom Bar: Copyright & Payment icons */}
         <div className="pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 text-center sm:text-left">
-          <p>© {new Date().getFullYear()} Ebanzo (India). All Rights Reserved. Crafted with love for memory keepers.</p>
+          <p>© {new Date().getFullYear()} {site.copyright_text}</p>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
             <span className="rounded bg-stone-900 border border-stone-800 px-2 py-1 text-[10px] text-stone-300 font-bold">UPI</span>
             <span className="rounded bg-stone-900 border border-stone-800 px-2 py-1 text-[10px] text-stone-300 font-bold">RuPay</span>

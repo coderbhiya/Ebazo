@@ -125,6 +125,9 @@ function AdminSettingsContent() {
   const [magnetSet6Multiplier, setMagnetSet6Multiplier] = useState('1.4');
   const [magnetSet8Multiplier, setMagnetSet8Multiplier] = useState('1.8');
   const [dualSideSurcharge, setDualSideSurcharge] = useState('49');
+  const [galleryFrameCounts, setGalleryFrameCounts] = useState('2,3,4,5,6,8');
+  const [galleryBaseFrames, setGalleryBaseFrames] = useState('4');
+  const [galleryPerFramePrice, setGalleryPerFramePrice] = useState('99');
 
   // Load Settings & Users on mount
   useEffect(() => {
@@ -153,6 +156,9 @@ function AdminSettingsContent() {
         if (s.magnet_set6_multiplier) setMagnetSet6Multiplier(String(s.magnet_set6_multiplier));
         if (s.magnet_set8_multiplier) setMagnetSet8Multiplier(String(s.magnet_set8_multiplier));
         if (s.dual_side_surcharge !== undefined) setDualSideSurcharge(String(s.dual_side_surcharge));
+        if (s.mini_gallery_frame_counts) setGalleryFrameCounts(String(s.mini_gallery_frame_counts));
+        if (s.mini_gallery_base_frames) setGalleryBaseFrames(String(s.mini_gallery_base_frames));
+        if (s.mini_gallery_per_frame_price !== undefined) setGalleryPerFramePrice(String(s.mini_gallery_per_frame_price));
         if (s.support_phone) setSupportPhone(s.support_phone);
         if (s.support_email) setSupportEmail(s.support_email);
         if (s.store_gst) setStoreGst(s.store_gst);
@@ -308,6 +314,9 @@ function AdminSettingsContent() {
         magnet_set6_multiplier: magnetSet6Multiplier,
         magnet_set8_multiplier: magnetSet8Multiplier,
         dual_side_surcharge: dualSideSurcharge,
+        mini_gallery_frame_counts: galleryFrameCounts,
+        mini_gallery_base_frames: galleryBaseFrames,
+        mini_gallery_per_frame_price: galleryPerFramePrice,
         support_phone: supportPhone,
         support_email: supportEmail,
         store_gst: storeGst,
@@ -678,6 +687,42 @@ function AdminSettingsContent() {
                 className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
               />
               <p className="mt-1 text-[10px] text-stone-500">Added to Car Stand / Car Hanging / Keychain price when a customer picks Dual-Side printing</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Mini Gallery — Frame Count Options</label>
+              <input
+                type="text"
+                value={galleryFrameCounts}
+                onChange={(e) => setGalleryFrameCounts(e.target.value)}
+                placeholder="2,3,4,5,6,8"
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">Comma-separated choices customers see, e.g. 3,4,5,6 (1–12)</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Mini Gallery — Frames Included in Product Price</label>
+              <input
+                type="number"
+                min="1"
+                value={galleryBaseFrames}
+                onChange={(e) => setGalleryBaseFrames(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">e.g. 4 = the product&apos;s listed price is for 4 frames</p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-stone-300 mb-1">Mini Gallery — Price per Extra Frame (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={galleryPerFramePrice}
+                onChange={(e) => setGalleryPerFramePrice(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-900 px-3 py-2 text-white"
+              />
+              <p className="mt-1 text-[10px] text-stone-500">Added for each frame above the included count, and taken off for each frame below it</p>
             </div>
 
             <div>

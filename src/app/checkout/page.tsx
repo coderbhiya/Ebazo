@@ -12,7 +12,7 @@ import { createOrder } from '@/lib/api';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, subtotal, shippingFee, clearCart } = useCart();
+  const { cart, subtotal, shippingFee, total, couponCode, couponValid, couponDiscount, clearCart } = useCart();
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -74,20 +74,32 @@ export default function CheckoutPage() {
         pincode,
         payment_method: paymentMethod,
         notes,
+        // The server re-validates the code and computes the discount itself
+        coupon_code: couponValid ? couponCode : undefined,
         items: cart.map((item) => ({
           product_id: item.productId,
           product_title: item.title,
           product_image: item.image,
-          shape_selected: item.shape,
-          custom_photo_url: item.frontPhotoUrl || item.customPhotoUrl,
-          print_ready_artwork_url: item.frontArtworkUrl || item.printReadyArtworkUrl,
-          customization_json: item.customizationSettings || {
+          shape_selected: item.variationLabel || item.shape,
+          variation_id: item.variationId,
+          variation_selection: item.variationSelection,
+          custom_photo_url: item.frontPhotoUrl || item.customPhotoUrl || item.multiImages?.[0]?.photoUrl,
+          print_ready_artwork_url:
+            item.frontArtworkUrl || item.printReadyArtworkUrl || item.multiImages?.[0]?.artworkUrl,
+          // One record with everything production needs. This used to send EITHER the editor
+          // settings OR a fallback object, and the fallback dropped the front/back print files,
+          // so the back side of dual-side items never reached the order.
+          customization_json: {
+            ...(item.customizationSettings || {}),
             shape: item.shape,
             setOption: item.setOption,
             printType: item.printType,
             frontPhotoUrl: item.frontPhotoUrl,
             backPhotoUrl: item.backPhotoUrl,
+            frontArtworkUrl: item.frontArtworkUrl,
+            backArtworkUrl: item.backArtworkUrl,
             multiImages: item.multiImages,
+            frameImage: item.frameImage || item.customizationSettings?.frameImage,
           },
           custom_text: item.customText,
           quantity: item.quantity,
@@ -133,8 +145,8 @@ export default function CheckoutPage() {
               <span className="font-extrabold text-primary-700">{placedOrder.tracking_number}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-500 font-medium">Total Paid:</span>
-              <span className="font-extrabold text-stone-900">₹{placedOrder.total_amount}</span>
+              <span className="text-stone-500 font-medium">Order Total:</span>
+              <span className="font-extrabold text-stone-900">₹{Number(placedOrder.total_amount).toFixed(2)}</span>
             </div>
             <div className="flex justify-between border-t border-stone-200 pt-2">
               <span className="text-stone-500 font-medium">Estimated Delivery:</span>
@@ -411,7 +423,9 @@ export default function CheckoutPage() {
                   )}
                   <div className="flex-1 min-w-0 text-xs">
                     <h4 className="font-bold text-stone-900 truncate">{item.title}</h4>
-                    <p className="text-stone-500 text-[11px]">Shape: {item.shape}</p>
+                    <p className="text-stone-500 text-[11px]">
+                      {item.variationLabel ? `Option: ${item.variationLabel}` : `Shape: ${item.shape}`}
+                    </p>
                     {item.customPhotoUrl && (
                       <span className="text-[10px] font-bold text-primary-600">✓ Custom Photo Fused</span>
                     )}
@@ -430,13 +444,19 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span className="font-bold text-stone-900">₹{subtotal.toFixed(2)}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-primary-600 font-semibold">
+                  <span>Discount ({couponCode})</span>
+                  <span>-₹{couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-stone-600">
                 <span>Pan-India Delivery</span>
                 <span>{shippingFee === 0 ? <strong className="text-primary-600">FREE</strong> : `₹${shippingFee}`}</span>
               </div>
               <div className="flex justify-between border-t border-stone-200 pt-3 text-base font-black text-stone-900">
                 <span>Total Due</span>
-                <span className="text-primary-700">₹{(subtotal + shippingFee).toFixed(2)}</span>
+                <span className="text-primary-700">₹{total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -453,7 +473,7 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 text-primary-200" />
-                  <span>Place Order (₹{(subtotal + shippingFee).toFixed(2)})</span>
+                  <span>Place Order (₹{total.toFixed(2)})</span>
                 </>
               )}
             </button>

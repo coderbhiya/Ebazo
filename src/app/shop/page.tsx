@@ -8,11 +8,15 @@ import {
 } from 'lucide-react';
 import { fetchCategories, fetchProducts, Product, Category } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
+import Carousel from '@/components/home/Carousel';
 
 function ShopContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
   const initialSearch = searchParams.get('search') || '';
+  // "View All" links from homepage sections
+  const bestsellerOnly = searchParams.get('bestseller') === '1';
+  const featuredOnly = searchParams.get('featured') === '1';
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,28 +29,60 @@ function ShopContent() {
     fetchCategories().then(setCategories);
   }, []);
 
+  // Navbar search / category links while already on /shop only change the URL
   useEffect(() => {
     setSelectedCategory(searchParams.get('category') || '');
+    setSearchQuery(searchParams.get('search') || '');
   }, [searchParams]);
 
   useEffect(() => {
+    // Typing fires a request per keystroke; ignore responses that arrive after a newer one
+    let cancelled = false;
     setLoading(true);
     fetchProducts({
       category: selectedCategory || undefined,
       search: searchQuery || undefined,
+      bestseller: bestsellerOnly ? 1 : undefined,
+      featured: featuredOnly ? 1 : undefined,
     }).then((res) => {
+      if (cancelled) return;
+      // Variable products are sold at their variation prices ("From ₹min")
+      const shownPrice = (p: Product) => (p.has_variations && p.min_price != null ? Number(p.min_price) : p.price);
       let list = [...res];
       if (sortBy === 'price-low') {
-        list.sort((a, b) => a.price - b.price);
+        list.sort((a, b) => shownPrice(a) - shownPrice(b));
       } else if (sortBy === 'price-high') {
-        list.sort((a, b) => b.price - a.price);
+        list.sort((a, b) => shownPrice(b) - shownPrice(a));
       } else if (sortBy === 'rating') {
         list.sort((a, b) => b.rating - a.rating);
       }
       setProducts(list);
       setLoading(false);
     });
-  }, [selectedCategory, searchQuery, sortBy]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCategory, searchQuery, sortBy, bestsellerOnly, featuredOnly]);
+
+  // Parents first, each followed by its sub-categories (indented in the sidebar)
+  const depthOf = (c: Category, seen = new Set<number>()): number => {
+    if (!c.parent_id || seen.has(c.id)) return 0;
+    seen.add(c.id);
+    const parent = categories.find((p) => p.id === c.parent_id);
+    return parent ? 1 + depthOf(parent, seen) : 0;
+  };
+  const orderedCategories: Category[] = [];
+  const addWithChildren = (c: Category) => {
+    if (orderedCategories.includes(c)) return;
+    orderedCategories.push(c);
+    categories.filter((k) => k.parent_id === c.id).forEach(addWithChildren);
+  };
+  categories.filter((c) => !c.parent_id || !categories.some((p) => p.id === c.parent_id)).forEach(addWithChildren);
+  categories.forEach(addWithChildren);
+  // Empty categories only lead to "No products found" (kept if it's the one being viewed)
+  const visibleCategories = orderedCategories.filter((c) => (c.product_count ?? 1) > 0 || c.slug === selectedCategory);
+  // product_count includes sub-categories, so the grand total sums each category's own products
+  const totalProducts = categories.reduce((acc, c) => acc + (c.own_product_count ?? c.product_count ?? 0), 0);
 
   return (
     <div className="min-h-screen bg-stone-50/50 py-6 sm:py-14">
@@ -60,6 +96,10 @@ function ShopContent() {
           <h1 className="mt-1 text-2xl sm:text-3xl lg:text-4xl font-black text-stone-900">
             {selectedCategory
               ? categories.find((c) => c.slug === selectedCategory)?.name || 'Custom Gifts'
+              : bestsellerOnly
+              ? 'Bestsellers'
+              : featuredOnly
+              ? 'Featured Products'
               : 'All Personalized Products'}
           </h1>
           <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-stone-600 max-w-xl">
@@ -101,7 +141,7 @@ function ShopContent() {
         </div>
 
         {/* Mobile Category Horizontal Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 lg:hidden no-scrollbar">
+        <Carousel className="flex gap-2 overflow-x-auto pb-3 mb-4 lg:hidden no-scrollbar">
           <button
             onClick={() => setSelectedCategory('')}
             className={`rounded-full px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
@@ -110,9 +150,9 @@ function ShopContent() {
                 : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
             }`}
           >
-            All ({categories.reduce((acc, c) => acc + (c.product_count || 0), 0)})
+            All ({totalProducts})
           </button>
-          {categories.map((cat) => (
+          {visibleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.slug)}
@@ -125,7 +165,7 @@ function ShopContent() {
               {cat.name} ({cat.product_count || 0})
             </button>
           ))}
-        </div>
+        </Carousel>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           {/* Left Sidebar: Category Filters (Desktop) */}
@@ -154,13 +194,14 @@ function ShopContent() {
                 }`}
               >
                 <span>All Products</span>
-                <span>{categories.reduce((acc, c) => acc + (c.product_count || 0), 0)}</span>
+                <span>{totalProducts}</span>
               </button>
 
-              {categories.map((cat) => (
+              {visibleCategories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.slug)}
+                  style={{ paddingLeft: `${0.75 + depthOf(cat) * 0.9}rem` }}
                   className={`flex items-center justify-between rounded-xl px-3 py-2 font-semibold transition-colors text-left ${
                     selectedCategory === cat.slug
                       ? 'bg-primary-500 text-white shadow-sm'
@@ -209,7 +250,7 @@ function ShopContent() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

@@ -7,8 +7,8 @@ import { adminLogin } from '@/lib/admin-api';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('admin@ebanzo.com');
-  const [password, setPassword] = useState('ebanzo@admin2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -82,13 +82,6 @@ export default function AdminLoginPage() {
               />
               <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
             </div>
-          </div>
-
-          {/* Pre-seeded credentials hint */}
-          <div className="rounded-xl bg-stone-950 p-3 border border-stone-800 text-[11px] text-stone-400">
-            <span className="font-bold text-primary-400 block mb-0.5">Pre-seeded Credentials:</span>
-            <span>Username: <code className="text-stone-300">admin@ebanzo.com</code></span><br />
-            <span>Password: <code className="text-stone-300">ebanzo@admin2026</code></span>
           </div>
 
           <button
