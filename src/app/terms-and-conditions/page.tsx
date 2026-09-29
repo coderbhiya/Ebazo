@@ -1,9 +1,9 @@
 import CMSPageViewer from '@/components/CMSPageViewer';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Terms & Conditions | Ebanzo Store Policies',
-  description: 'Review the terms and conditions for ordering bespoke photo gifts on Ebanzo.',
-};
+export function generateMetadata() {
+  return pageMetadata('/terms-and-conditions');
+}
 
 export default function TermsPage() {
   return <CMSPageViewer slug="terms-and-conditions" fallbackTitle="Terms & Conditions" />;

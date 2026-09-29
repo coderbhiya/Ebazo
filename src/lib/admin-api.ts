@@ -103,6 +103,8 @@ export interface AdminProduct {
   stock: number;
   product_type?: 'standard' | 'fridge_magnet' | 'dual_side' | 'mini_gallery';
   created_at?: string;
+  meta_title?: string | null;
+  meta_description?: string | null;
   attributes?: import('./api').ProductAttribute[];
   variations?: import('./api').ProductVariation[];
   // Listing endpoint only
@@ -638,6 +640,8 @@ export async function createAdminCategory(payload: {
   parent_id?: number | null;
   image_url?: string;
   description?: string;
+  meta_title?: string;
+  meta_description?: string;
   display_order?: number;
   bg_removal_enabled?: number;
 }) {
@@ -688,7 +692,7 @@ export async function bulkDeleteAdminCategories(ids: number[]) {
 }
 
 export interface AdminSettingsData {
-  hero_mode?: 'split' | 'slider';
+  hero_mode?: 'split' | 'slider' | 'banner';
   hero_slider_autoplay?: string | boolean;
   hero_slider_interval?: string | number;
   hero_slides?: string | any[];

@@ -12,6 +12,7 @@ import { Product, ProductVariation, uploadCustomPhoto, uploadPrintArtwork, Custo
 import { useCart } from '@/context/CartContext';
 import ProductPreviewMockup, { PreviewArtwork, trimTransparent } from '@/components/ProductPreviewMockup';
 import { frameLabel } from '@/lib/frames';
+import PhotoEditorModal, { PhotoEdits } from '@/components/PhotoEditorModal';
 
 interface Props {
   product: Product;
@@ -109,6 +110,34 @@ async function removeBackgroundAI(
   }
 }
 
+
+// Photo in the editor, scaled to COVER the square box but not cropped to it: the frame mask
+// does the cutting, so panning/zooming out reveals the rest of the photo. This matches
+// generatePrintArtworkBlob, which draws the full photo at the same cover size. (It used to be
+// object-cover, which cropped the photo to the box first — panning then showed empty space and
+// the print contained parts the customer never saw.)
+function CoverPhoto({ src }: { src: string }) {
+  const [aspect, setAspect] = useState<number | null>(null);
+  const size: React.CSSProperties =
+    aspect === null
+      ? { width: '100%', height: '100%', objectFit: 'cover' }
+      : aspect >= 1
+      ? { height: '100%', width: `${aspect * 100}%` }
+      : { width: '100%', height: `${100 / aspect}%` };
+  return (
+    <img
+      src={src}
+      alt="Custom preview"
+      draggable={false}
+      onLoad={(e) => {
+        const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+        if (w > 0 && h > 0) setAspect(w / h);
+      }}
+      className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
+      style={size}
+    />
+  );
+}
 
 // High-resolution Canvas generator for print-ready composite
 async function generatePrintArtworkBlob(
@@ -415,6 +444,11 @@ export default function LiveCustomizerModal({
   useEffect(() => {
     if (activeGalleryIdx >= galleryFrameCount) setActiveGalleryIdx(0);
   }, [galleryFrameCount]);
+
+  // Photo editor (crop / filters / adjustments) for the photo currently being edited. Edited
+  // results remember their source + settings so re-editing starts from the original photo.
+  const [photoEditor, setPhotoEditor] = useState<{ src: string; edits?: PhotoEdits } | null>(null);
+  const photoEditHistory = useRef(new Map<string, { src: string; edits: PhotoEdits }>());
 
   // Shown in the customizer when a photo / print file couldn't be saved (nothing is added to cart)
   const [saveError, setSaveError] = useState('');
@@ -765,6 +799,35 @@ export default function LiveCustomizerModal({
       if (patch.zoom !== undefined) setZoom(patch.zoom);
       if (patch.rotation !== undefined) setRotation(patch.rotation);
     }
+  };
+
+  // Swap in the edited photo for whichever slot / side is active. A crop changes the photo's
+  // shape, so its position/zoom start over; colour-only edits keep the placement.
+  const replaceActivePhoto = (file: File, url: string, cropped: boolean) => {
+    if (isDualSideEligible && printType === 'dual') {
+      if (activeSide === 'front') {
+        setFrontImageFile(file);
+        setFrontPreviewUrl(url);
+      } else {
+        setBackImageFile(file);
+        setBackPreviewUrl(url);
+      }
+    } else if (isFridgeMagnet) {
+      setMagnetSlots((prev) => {
+        const c = [...prev]; c[activeMagnetIdx] = { ...c[activeMagnetIdx], imageFile: file, imagePreviewUrl: url }; return c;
+      });
+    } else if (isMiniGallery) {
+      setMiniGallerySlots((prev) => {
+        const c = [...prev]; c[activeGalleryIdx] = { ...c[activeGalleryIdx], imageFile: file, imagePreviewUrl: url }; return c;
+      });
+    } else {
+      setImageFile(file);
+      setImagePreviewUrl(url);
+      setOriginalFile(file);
+      setOriginalPreviewUrl(url);
+      setIsBgRemoved(false);
+    }
+    if (cropped) resetTransforms();
   };
 
   // Reset transforms
@@ -1239,6 +1302,11 @@ export default function LiveCustomizerModal({
   const activeState = getActiveDisplayState();
   const hasCurrentPhoto = Boolean(activeState.url);
 
+  const openPhotoEditor = () => {
+    if (!activeState.url) return;
+    setPhotoEditor(photoEditHistory.current.get(activeState.url) ?? { src: activeState.url });
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-stone-950/70 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
       
@@ -1264,6 +1332,19 @@ export default function LiveCustomizerModal({
         accept="image/jpeg,image/png,image/webp"
         className="hidden"
       />
+
+      {photoEditor && (
+        <PhotoEditorModal
+          src={photoEditor.src}
+          initial={photoEditor.edits}
+          onClose={() => setPhotoEditor(null)}
+          onApply={({ file, url, edits, cropped }) => {
+            photoEditHistory.current.set(url, { src: photoEditor.src, edits });
+            replaceActivePhoto(file, url, cropped);
+            setPhotoEditor(null);
+          }}
+        />
+      )}
 
       {/* Slide-over Drawer Container */}
       <div className="relative w-full max-w-lg bg-white text-stone-900 h-full shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
@@ -1693,19 +1774,14 @@ export default function LiveCustomizerModal({
                       onPointerCancel={handlePointerUp}
                     >
                       <div
-                        className={`h-full w-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        className={`relative h-full w-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                         style={{
                           transform: `translate(${activeState.x}px, ${activeState.y}px) rotate(${activeState.rot}deg) scale(${activeState.zoom * (activeState.flipH ? -1 : 1)}, ${activeState.zoom * (activeState.flipV ? -1 : 1)})`,
                           transformOrigin: 'center center',
                           transition: isDragging ? 'none' : 'transform 0.08s ease-out',
                         }}
                       >
-                        <img
-                          src={activeState.url!}
-                          alt="Custom preview"
-                          className="h-full w-full object-cover pointer-events-none select-none"
-                          draggable={false}
-                        />
+                        <CoverPhoto key={activeState.url!} src={activeState.url!} />
                       </div>
 
                       {/* Acrylic Reflection */}
@@ -1835,6 +1911,18 @@ export default function LiveCustomizerModal({
                     title="Reset Photo Transforms"
                   >
                     <RotateCcw className="h-4 w-4" />
+                  </button>
+
+                  <div className="h-4 w-[1px] bg-stone-200 mx-0.5" />
+
+                  <button
+                    type="button"
+                    onClick={openPhotoEditor}
+                    className="flex items-center gap-1 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-primary-700 transition-colors"
+                    title="Crop, filters, brightness & contrast"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                    Edit Photo
                   </button>
                 </div>
               )}
@@ -1969,6 +2057,16 @@ export default function LiveCustomizerModal({
                     <span>Plate Text</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={openPhotoEditor}
+                  className="px-3 py-2 text-xs font-bold text-stone-600 hover:text-stone-900 flex items-center gap-1 rounded-xl transition-colors hover:bg-white/80"
+                  title="Crop, filters, brightness & contrast"
+                >
+                  <Wand2 className="h-3.5 w-3.5 text-primary-600" />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
 
                 <button
                   type="button"

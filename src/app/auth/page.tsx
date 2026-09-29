@@ -17,7 +17,7 @@ function AuthForm() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const redirect = searchParams.get('redirect') || '/account';
+      const redirect = safeRedirect(searchParams.get('redirect'));
       router.push(redirect);
     }
     const tab = searchParams.get('tab');
@@ -30,7 +30,7 @@ function AuthForm() {
     if (!form.email.trim()) errs.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Invalid email address';
     if (!form.password) errs.password = 'Password is required';
-    else if (form.password.length < 6) errs.password = 'Minimum 6 characters';
+    else if (mode === 'register' && form.password.length < 8) errs.password = 'Minimum 8 characters';
     if (mode === 'register' && form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
     return errs;
   };
@@ -50,7 +50,7 @@ function AuthForm() {
         result = await register({ name: form.name, email: form.email, phone: form.phone, password: form.password });
       }
       if (result.success) {
-        const redirect = searchParams.get('redirect') || '/account';
+        const redirect = safeRedirect(searchParams.get('redirect'));
         router.push(redirect);
       } else {
         setServerMsg(result.message);
@@ -154,6 +154,11 @@ function AuthForm() {
       </div>
     </div>
   );
+}
+
+// Only same-site paths: "/auth?redirect=https://evil.com" must not send a customer off-site
+function safeRedirect(target: string | null): string {
+  return target && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\') ? target : '/account';
 }
 
 export default function AuthPage() {

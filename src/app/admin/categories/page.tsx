@@ -17,6 +17,7 @@ import {
   bulkDeleteAdminCategories,
   updateCategoryBgRemoval
 } from '@/lib/admin-api';
+import SeoFields from '@/components/admin/SeoFields';
 import { Category, uploadCustomPhoto } from '@/lib/api';
 
 export interface CategoryWithHierarchy extends Category {
@@ -85,6 +86,8 @@ export default function WooCommerceAdminCategoriesPage() {
   const [parentId, setParentId] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
   const [displayOrder, setDisplayOrder] = useState('0');
   const [bgRemovalEnabled, setBgRemovalEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -338,6 +341,8 @@ export default function WooCommerceAdminCategoriesPage() {
       setParentId(cat.parent_id ?? null);
       setImageUrl(cat.image_url || '');
       setDescription(cat.description || '');
+      setMetaTitle(cat.meta_title || '');
+      setMetaDescription(cat.meta_description || '');
       setDisplayOrder(String(cat.display_order || 0));
       setBgRemovalEnabled(cat.bg_removal_enabled === 1);
     } else {
@@ -347,6 +352,8 @@ export default function WooCommerceAdminCategoriesPage() {
       setParentId(null); // By default: None (Parent Category)
       setImageUrl('');
       setDescription('');
+      setMetaTitle('');
+      setMetaDescription('');
       setDisplayOrder(String(categories.length + 1));
       setBgRemovalEnabled(false);
     }
@@ -396,6 +403,8 @@ export default function WooCommerceAdminCategoriesPage() {
         parent_id: parentId,
         image_url: imageUrl.trim(),
         description: description.trim(),
+        meta_title: metaTitle.trim(),
+        meta_description: metaDescription.trim(),
         display_order: parseInt(displayOrder) || 0,
         bg_removal_enabled: bgRemovalEnabled ? 1 : 0,
       };
@@ -1112,6 +1121,23 @@ export default function WooCommerceAdminCategoriesPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief summary of keepsake products in this category..."
                   className="w-full rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-white placeholder-stone-500 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+
+              {/* SEO for the category's shop page (/shop?category=slug) */}
+              <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-3">
+                <p className="mb-2 font-bold text-stone-300">SEO — Google Title &amp; Description</p>
+                <SeoFields
+                  compact
+                  title={metaTitle}
+                  description={metaDescription}
+                  onChange={(p) => {
+                    if (p.title !== undefined) setMetaTitle(p.title);
+                    if (p.description !== undefined) setMetaDescription(p.description);
+                  }}
+                  defaultTitle={`${name.trim() || 'Category'} | Personalized Photo Gifts | Ebanzo`}
+                  defaultDescription={description.trim().slice(0, 160) || 'Uses the category description when left empty.'}
+                  urlPath={`/shop?category=${slug || 'category-slug'}`}
                 />
               </div>
 

@@ -18,6 +18,23 @@ export interface HeroSlide {
   layout?: 'full_banner' | 'split_card';
   text_color?: 'light' | 'dark';
   gradient?: string;
+  // What the slide links to (Admin > Hero): a category, a product or a custom URL.
+  // `link` always holds the resolved URL so older storefront code keeps working.
+  link_type?: 'category' | 'product' | 'custom';
+  category_slug?: string;
+  product_slug?: string;
+  // Full-width image slider only
+  text_align?: 'left' | 'center' | 'right';
+  overlay?: boolean;
+  // Attached product, filled in by the homepage server (not stored)
+  product?: Pick<Product, 'slug' | 'title' | 'image_url' | 'price' | 'original_price' | 'min_price' | 'max_price' | 'has_variations'> | null;
+}
+
+// Where a hero slide points: the attached product / category, else its own link
+export function heroSlideLink(s: HeroSlide): string {
+  if (s.link_type === 'product' && s.product_slug) return `/product/${s.product_slug}`;
+  if (s.link_type === 'category' && s.category_slug) return `/shop?category=${s.category_slug}`;
+  return s.link || s.categoryLink || '/shop';
 }
 
 export interface Category {
@@ -32,6 +49,8 @@ export interface Category {
   product_count?: number; // includes sub-categories' products
   own_product_count?: number; // this category's products only
   bg_removal_enabled: number; // 0 or 1
+  meta_title?: string | null;
+  meta_description?: string | null;
 }
 
 // WooCommerce-style attribute on a product (Admin > Products > edit > Attributes & Variations)
@@ -87,6 +106,8 @@ export interface Product {
   has_variations?: number;
   min_price?: number | null;
   max_price?: number | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
 }
 
 export interface CustomizationSettings {
@@ -191,7 +212,7 @@ export function formatProductTitle(title?: string): string {
 
 export async function fetchCategories(): Promise<Category[]> {
   try {
-    const res = await fetch(`${API_BASE}/categories`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/categories`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error('Failed to fetch categories');
     const data = await res.json();
     return data.data || [];
@@ -480,7 +501,7 @@ export async function userSaveAddress(data: Partial<UserAddress>) {
 }
 
 export interface PublicSettings {
-  hero_mode?: 'split' | 'slider';
+  hero_mode?: 'split' | 'slider' | 'banner';
   hero_slider_autoplay?: string | boolean;
   hero_slider_interval?: string | number;
   hero_slides?: string | HeroSlide[];
@@ -498,7 +519,7 @@ export interface PublicSettings {
 
 export async function fetchPublicSettings(): Promise<PublicSettings> {
   try {
-    const res = await fetch(`${API_BASE}/settings`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/settings`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (!res.ok) return { hero_mode: 'split', razorpay_enabled: 'true', razorpay_mode: 'test' };
     const data = await res.json();
     return data.data || { hero_mode: 'split' };
@@ -642,7 +663,7 @@ export async function fetchPages(): Promise<CMSPage[]> {
 
 export async function fetchPageBySlug(slug: string): Promise<CMSPage | null> {
   try {
-    const res = await fetch(`${API_BASE}/pages/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/pages/${slug}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const data = await res.json();
     return data.data || null;

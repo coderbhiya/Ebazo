@@ -1,9 +1,9 @@
 import CMSPageViewer from '@/components/CMSPageViewer';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'Shipping & Delivery Policy | Ebanzo Express Pan-India',
-  description: 'Learn about Ebanzo delivery timelines, free express shipping across 27,000+ pincodes, and live parcel tracking.',
-};
+export function generateMetadata() {
+  return pageMetadata('/shipping-policy');
+}
 
 export default function ShippingPolicyPage() {
   return <CMSPageViewer slug="shipping-policy" fallbackTitle="Shipping & Delivery Policy" />;

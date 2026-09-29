@@ -8,7 +8,7 @@ import {
   ExternalLink, LogOut, Printer, Scissors, Truck, 
   CreditCard, Tag, Star, BarChart3, Users, Settings,
   AlertTriangle, X, ShieldCheck, Layers, FileText, BookOpen,
-  Sparkles, Tags, LayoutTemplate
+  Sparkles, Tags, LayoutTemplate, Search
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -100,6 +100,7 @@ export default function AdminSidebar({
         { name: 'Hero Banners & Slider', href: '/admin/settings?tab=hero', icon: Sparkles },
         { name: 'Blog & Articles', href: '/admin/blogs', icon: BookOpen },
         { name: 'Pages & Policy CMS', href: '/admin/pages', icon: FileText },
+        { name: 'SEO Titles & Descriptions', href: '/admin/seo', icon: Search },
         { name: 'Coupons & Discounts', href: '/admin/coupons', icon: Tag },
         { name: 'Sales Analytics & Reports', href: '/admin/analytics', icon: BarChart3 },
       ]

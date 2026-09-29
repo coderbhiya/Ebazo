@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import { 
   fetchAdminUsers, saveAdminUser, AdminUser,
-  fetchAdminSettings, saveAdminSettings, uploadAdminPhoto
+  fetchAdminSettings, saveAdminSettings, uploadAdminPhoto, fetchAdminCategories, fetchAdminProducts, AdminProduct
 } from '@/lib/admin-api';
-import { HeroSlide } from '@/lib/api';
+import { Category, HeroSlide, heroSlideLink } from '@/lib/api';
 
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
@@ -94,7 +94,17 @@ function AdminSettingsContent() {
   const [toastMessage, setToastMessage] = useState('');
 
   // Hero Slider Settings
-  const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
+  // Two hero styles, each with its own slides: "slider" = classic split-card slider,
+  // "banner" = full-width image slider. The list and editor below work on the selected style.
+  const [heroMode, setHeroMode] = useState<'slider' | 'banner'>('slider');
+  const [classicSlides, setClassicSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
+  const [bannerSlides, setBannerSlides] = useState<HeroSlide[]>([]);
+  const isBanner = heroMode === 'banner';
+  const slides = isBanner ? bannerSlides : classicSlides;
+  const setSlides = isBanner ? setBannerSlides : setClassicSlides;
+  // Link pickers in the slide editor
+  const [linkCategories, setLinkCategories] = useState<Category[]>([]);
+  const [linkProducts, setLinkProducts] = useState<AdminProduct[]>([]);
   const [heroAutoplay, setHeroAutoplay] = useState(true);
   const [heroInterval, setHeroInterval] = useState('5000');
   
@@ -113,6 +123,17 @@ function AdminSettingsContent() {
   const [slideLink, setSlideLink] = useState('/shop');
   const [slideButtonText, setSlideButtonText] = useState('Customize Now');
   const [slideGradient, setSlideGradient] = useState('from-primary-500/20 via-primary-500/10 to-transparent');
+  const [slideLinkType, setSlideLinkType] = useState<'category' | 'product' | 'custom'>('custom');
+  const [slideCategorySlug, setSlideCategorySlug] = useState('');
+  const [slideProductSlug, setSlideProductSlug] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [slideMobileImage, setSlideMobileImage] = useState('');
+  const [slideTextAlign, setSlideTextAlign] = useState<'left' | 'center' | 'right'>('left');
+  const [slideTextColor, setSlideTextColor] = useState<'light' | 'dark'>('light');
+  const [slideOverlay, setSlideOverlay] = useState(true);
+  const [slideSecondaryText, setSlideSecondaryText] = useState('');
+  const [slideSecondaryLink, setSlideSecondaryLink] = useState('');
+  const [uploadingMobileImage, setUploadingMobileImage] = useState(false);
 
   // Store Configuration Settings
   const [freeShippingThreshold, setFreeShippingThreshold] = useState('0');
@@ -139,12 +160,21 @@ function AdminSettingsContent() {
           try {
             const parsed = typeof s.hero_slides === 'string' ? JSON.parse(s.hero_slides) : s.hero_slides;
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setSlides(parsed);
+              setClassicSlides(parsed);
             }
           } catch (e) {
             console.warn('Could not parse hero_slides from backend:', e);
           }
         }
+        if (s.hero_banner_slides) {
+          try {
+            const parsed = typeof s.hero_banner_slides === 'string' ? JSON.parse(s.hero_banner_slides) : s.hero_banner_slides;
+            if (Array.isArray(parsed)) setBannerSlides(parsed);
+          } catch (e) {
+            console.warn('Could not parse hero_banner_slides from backend:', e);
+          }
+        }
+        setHeroMode(s.hero_mode === 'banner' ? 'banner' : 'slider');
         if (s.hero_slider_autoplay !== undefined) {
           setHeroAutoplay(s.hero_slider_autoplay === 'true' || s.hero_slider_autoplay === true);
         }
@@ -165,6 +195,10 @@ function AdminSettingsContent() {
       }
       setLoadingSettings(false);
     });
+
+    // Categories & products for the slide link pickers
+    fetchAdminCategories().then(setLinkCategories).catch(() => {});
+    fetchAdminProducts().then(setLinkProducts).catch(() => {});
 
     // 2. Load Users
     setLoadingUsers(true);
@@ -196,6 +230,15 @@ function AdminSettingsContent() {
       setSlideLink(s.categoryLink || s.link || '/shop');
       setSlideButtonText(s.button_text || 'Customize Now');
       setSlideGradient(s.gradient || 'from-primary-500/20 via-primary-500/10 to-transparent');
+      setSlideLinkType(s.link_type || 'custom');
+      setSlideCategorySlug(s.category_slug || '');
+      setSlideProductSlug(s.product_slug || '');
+      setSlideMobileImage(s.mobile_image || '');
+      setSlideTextAlign(s.text_align || 'left');
+      setSlideTextColor(s.text_color || 'light');
+      setSlideOverlay(s.overlay ?? true);
+      setSlideSecondaryText(s.secondary_button_text || '');
+      setSlideSecondaryLink(s.secondary_button_link || '');
     } else {
       setEditingSlideIndex(null);
       setSlideTitle('');
@@ -207,7 +250,23 @@ function AdminSettingsContent() {
       setSlideLink('/shop');
       setSlideButtonText('Customize Now');
       setSlideGradient('from-primary-500/20 via-primary-500/10 to-transparent');
+      setSlideLinkType('category');
+      setSlideCategorySlug('');
+      setSlideProductSlug('');
+      setSlideMobileImage('');
+      setSlideTextAlign('left');
+      setSlideTextColor('light');
+      setSlideOverlay(true);
+      setSlideSecondaryText('');
+      setSlideSecondaryLink('');
+      if (isBanner) {
+        setSlideTag('');
+        setSlideBadge('');
+        setSlidePrice('');
+        setSlideButtonText('Shop Now');
+      }
     }
+    setProductSearch('');
     setSlideModalOpen(true);
   };
 
@@ -234,6 +293,24 @@ function AdminSettingsContent() {
       return;
     }
 
+    if (slideLinkType === 'category' && !slideCategorySlug) {
+      alert('Please choose the category this slide links to.');
+      return;
+    }
+    if (slideLinkType === 'product' && !slideProductSlug) {
+      alert('Please choose the product this slide links to.');
+      return;
+    }
+
+    const linkFields: HeroSlide = {
+      title: '', subtitle: '', image: '',
+      link_type: slideLinkType,
+      category_slug: slideLinkType === 'category' ? slideCategorySlug : undefined,
+      product_slug: slideLinkType === 'product' ? slideProductSlug : undefined,
+      link: slideLink,
+    };
+    const resolvedLink = heroSlideLink(linkFields);
+
     const updatedSlide: HeroSlide = {
       title: slideTitle,
       subtitle: slideSubtitle,
@@ -242,10 +319,18 @@ function AdminSettingsContent() {
       price: slidePrice,
       price_text: slidePrice,
       image: slideImage,
-      categoryLink: slideLink,
-      link: slideLink,
+      categoryLink: resolvedLink,
+      link: resolvedLink,
+      link_type: linkFields.link_type,
+      category_slug: linkFields.category_slug,
+      product_slug: linkFields.product_slug,
       button_text: slideButtonText,
       gradient: slideGradient,
+      secondary_button_text: slideSecondaryText.trim() || undefined,
+      secondary_button_link: slideSecondaryText.trim() ? slideSecondaryLink.trim() || '/shop' : undefined,
+      ...(isBanner
+        ? { mobile_image: slideMobileImage || undefined, text_align: slideTextAlign, text_color: slideTextColor, overlay: slideOverlay }
+        : {}),
     };
 
     if (editingSlideIndex !== null) {
@@ -262,11 +347,11 @@ function AdminSettingsContent() {
   };
 
   const handleDeleteSlide = (index: number) => {
-    if (slides.length <= 1) {
+    if (!isBanner && slides.length <= 1) {
       alert('You must have at least one hero slide.');
       return;
     }
-    if (confirm(`Are you sure you want to delete slide "${slides[index]?.title}"?`)) {
+    if (confirm(`Are you sure you want to delete slide "${slides[index]?.title || `#${index + 1}`}"?`)) {
       const newSlides = slides.filter((_, i) => i !== index);
       setSlides(newSlides);
       showToast('Slide removed. Click "Save Hero Settings" to commit changes.');
@@ -290,10 +375,11 @@ function AdminSettingsContent() {
     setSavingSettings(true);
     try {
       await saveAdminSettings({
-        hero_mode: 'slider',
+        hero_mode: heroMode,
         hero_slider_autoplay: heroAutoplay ? 'true' : 'false',
         hero_slider_interval: heroInterval,
-        hero_slides: JSON.stringify(slides),
+        hero_slides: JSON.stringify(classicSlides),
+        hero_banner_slides: JSON.stringify(bannerSlides),
       });
       showToast('Hero slider banners & configuration saved live!');
     } catch (err) {
@@ -427,6 +513,71 @@ function AdminSettingsContent() {
       {/* ==================================================== */}
       {activeTab === 'hero' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Hero style: which hero the homepage shows */}
+          <div className="rounded-3xl border border-stone-800 bg-stone-950 p-6">
+            <h3 className="font-bold text-base text-white flex items-center gap-2">
+              <Layout className="h-4 w-4 text-primary-400" />
+              <span>Hero Style</span>
+            </h3>
+            <p className="text-xs text-stone-400 mt-0.5 mb-4">
+              Pick the hero shown on the homepage. Each style keeps its own slides — switch to edit them, then save.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                { id: 'slider', name: 'Classic Split Slider', desc: 'Text on the left, product photo card on the right.', count: classicSlides.length },
+                { id: 'banner', name: 'Full-Width Image Slider', desc: 'Edge-to-edge banner images with text, buttons and an optional product card.', count: bannerSlides.length },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setHeroMode(opt.id)}
+                  className={`rounded-2xl border p-4 text-left transition-colors ${
+                    heroMode === opt.id ? 'border-primary-500 bg-primary-950/40 ring-1 ring-primary-500/50' : 'border-stone-800 bg-stone-900/60 hover:border-stone-700'
+                  }`}
+                >
+                  {/* Mini layout sketch */}
+                  <div className="mb-3 flex h-16 overflow-hidden rounded-lg border border-stone-700 bg-stone-800">
+                    {opt.id === 'slider' ? (
+                      <div className="flex w-full items-center gap-2 p-2">
+                        <div className="flex-1 space-y-1">
+                          <div className="h-2 w-3/4 rounded bg-stone-500" />
+                          <div className="h-1.5 w-1/2 rounded bg-stone-600" />
+                          <div className="h-2.5 w-1/3 rounded-full bg-primary-500" />
+                        </div>
+                        <div className="h-12 w-12 rounded-md bg-stone-600" />
+                      </div>
+                    ) : (
+                      <div className="relative w-full bg-gradient-to-br from-stone-500 to-stone-700">
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 space-y-1">
+                          <div className="h-2 w-16 rounded bg-white/80" />
+                          <div className="h-2.5 w-10 rounded-full bg-primary-500" />
+                        </div>
+                        <div className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+                          <span className="h-1 w-3 rounded-full bg-white" />
+                          <span className="h-1 w-1 rounded-full bg-white/60" />
+                          <span className="h-1 w-1 rounded-full bg-white/60" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white">{opt.name}</span>
+                    {heroMode === opt.id && (
+                      <span className="rounded-full bg-primary-600 px-2 py-0.5 text-[10px] font-bold text-white">Selected</span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-stone-400">{opt.desc}</p>
+                  <p className="mt-1 text-[10px] font-bold text-stone-500">{opt.count} slide{opt.count === 1 ? '' : 's'}</p>
+                </button>
+              ))}
+            </div>
+            {isBanner && bannerSlides.length === 0 && (
+              <p className="mt-3 rounded-xl bg-amber-950/60 px-3 py-2 text-[11px] font-semibold text-amber-200">
+                Add at least one slide — until then the homepage keeps showing the classic slider.
+              </p>
+            )}
+          </div>
+
           {/* Slider Global Control Card */}
           <div className="rounded-3xl border border-stone-800 bg-stone-950 p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-800/80">
@@ -505,7 +656,7 @@ function AdminSettingsContent() {
           {/* Slide Cards List */}
           <div className="space-y-4">
             <h3 className="font-bold text-sm text-stone-300 uppercase tracking-wider">
-              Active Slides ({slides.length}) — Drag / Reorder & Edit
+              {isBanner ? 'Full-Width Image Slider' : 'Classic Split Slider'} — Slides ({slides.length})
             </h3>
 
             {slides.map((s, idx) => (
@@ -537,7 +688,7 @@ function AdminSettingsContent() {
                   </div>
 
                   {/* Image Thumbnail */}
-                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-stone-900 border border-stone-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  <div className={`relative h-20 sm:h-24 rounded-2xl bg-stone-900 border border-stone-800 overflow-hidden flex-shrink-0 flex items-center justify-center ${isBanner ? 'w-36 sm:w-44' : 'w-20 sm:w-24'}`}>
                     <img
                       src={s.image}
                       alt={s.title}
@@ -561,7 +712,7 @@ function AdminSettingsContent() {
                       </span>
                     </div>
                     <h4 className="font-black text-sm sm:text-base text-white truncate">
-                      {s.title}
+                      {s.title || <span className="text-stone-500 italic">Image only (no text)</span>}
                     </h4>
                     <p className="text-xs text-stone-400 line-clamp-1">
                       {s.subtitle}
@@ -569,7 +720,13 @@ function AdminSettingsContent() {
                     <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-stone-500 font-medium">
                       <span className="text-primary-300 font-bold">{s.price_text || s.price || 'Special Edition'}</span>
                       <span>•</span>
-                      <span className="truncate max-w-[180px] font-mono">{s.categoryLink || s.link || '/shop'}</span>
+                      <span className="truncate max-w-[220px]">
+                        {s.link_type === 'product'
+                          ? `Product: ${linkProducts.find((p) => p.slug === s.product_slug)?.title || s.product_slug}`
+                          : s.link_type === 'category'
+                          ? `Category: ${linkCategories.find((c) => c.slug === s.category_slug)?.name || s.category_slug}`
+                          : <span className="font-mono">{s.categoryLink || s.link || '/shop'}</span>}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -865,7 +1022,9 @@ function AdminSettingsContent() {
                 <h3 className="text-lg font-black text-white">
                   {editingSlideIndex !== null ? `Edit Slide #${editingSlideIndex + 1}` : 'Add New Hero Slide'}
                 </h3>
-                <p className="text-xs text-stone-400">Upload banner image and configure texts and links</p>
+                <p className="text-xs text-stone-400">
+                  {isBanner ? 'Full-Width Image Slider' : 'Classic Split Slider'} — image, texts and what the slide links to
+                </p>
               </div>
               <button
                 onClick={() => setSlideModalOpen(false)}
@@ -910,7 +1069,9 @@ function AdminSettingsContent() {
                         />
                       </label>
                       <p className="text-[10px] text-stone-400 mt-1">
-                        Supports JPG, PNG, WebP (Recommended: 1200x800 or high-res square)
+                        {isBanner
+                          ? 'Wide banner — recommended 1920×840 (desktop). Keep the main subject away from the text side.'
+                          : 'Supports JPG, PNG, WebP (Recommended: 1200x800 or high-res square)'}
                       </p>
                     </div>
 
@@ -930,13 +1091,62 @@ function AdminSettingsContent() {
                 </div>
               </div>
 
+              {isBanner && (
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-stone-300">Mobile Image (optional, portrait 1080×1350)</label>
+                  <div className="flex items-center gap-3">
+                    <div className="h-20 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-stone-800 bg-stone-950">
+                      {slideMobileImage ? (
+                        <img src={slideMobileImage} alt="Mobile preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-stone-600"><ImageIcon className="h-5 w-5" /></div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-stone-800 px-3 py-2 font-bold text-white hover:bg-stone-700">
+                        <Upload className="h-4 w-4" />
+                        <span>{uploadingMobileImage ? 'Uploading…' : 'Upload Mobile Image'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingMobileImage}
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            setUploadingMobileImage(true);
+                            try {
+                              setSlideMobileImage(await uploadAdminPhoto(f));
+                            } catch (err) {
+                              alert('Upload failed: ' + (err instanceof Error ? err.message : 'Server error'));
+                            } finally {
+                              setUploadingMobileImage(false);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={slideMobileImage}
+                        onChange={(e) => setSlideMobileImage(e.target.value)}
+                        placeholder="Empty = the desktop image is cropped for phones"
+                        className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Title & Subtitle */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-stone-300 mb-1">Main Headline / Title *</label>
+                  <label className="block font-bold text-stone-300 mb-1">
+                    Main Headline / Title {isBanner ? <span className="font-normal text-stone-500">(optional — leave all texts empty for an image-only banner)</span> : '*'}
+                  </label>
                   <input
                     type="text"
-                    required
+                    required={!isBanner}
                     value={slideTitle}
                     onChange={(e) => setSlideTitle(e.target.value)}
                     placeholder="e.g. Laser Cut Fridge Magnets"
@@ -999,16 +1209,143 @@ function AdminSettingsContent() {
                   />
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block font-bold text-stone-300 mb-1">Target Destination URL / Link</label>
+                {/* What the slide links to */}
+                <div className="sm:col-span-2 rounded-2xl border border-stone-800 bg-stone-950/60 p-3 space-y-3">
+                  <label className="block font-bold text-stone-300">Slide Links To</label>
+                  <div className="flex gap-1 rounded-xl bg-stone-900 p-1">
+                    {([
+                      { id: 'category', label: 'Category' },
+                      { id: 'product', label: 'Product' },
+                      { id: 'custom', label: 'Custom URL' },
+                    ] as const).map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSlideLinkType(t.id)}
+                        className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                          slideLinkType === t.id ? 'bg-primary-600 text-white' : 'text-stone-400 hover:text-white'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {slideLinkType === 'category' && (
+                    <select
+                      value={slideCategorySlug}
+                      onChange={(e) => setSlideCategorySlug(e.target.value)}
+                      className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white"
+                    >
+                      <option value="">Choose a category…</option>
+                      {linkCategories.map((c) => (
+                        <option key={c.id} value={c.slug}>
+                          {c.parent_id ? `— ${c.name}` : c.name} ({c.product_count ?? 0} products)
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {slideLinkType === 'product' && (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search products…"
+                        className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white"
+                      />
+                      <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-stone-800 p-1">
+                        {linkProducts
+                          .filter((p) => p.title.toLowerCase().includes(productSearch.trim().toLowerCase()))
+                          .slice(0, 50)
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setSlideProductSlug(p.slug)}
+                              className={`flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-colors ${
+                                slideProductSlug === p.slug ? 'bg-primary-600/30 ring-1 ring-primary-500' : 'hover:bg-stone-800'
+                              }`}
+                            >
+                              <img src={p.image_url} alt="" className="h-8 w-8 flex-shrink-0 rounded-md bg-stone-800 object-contain" />
+                              <span className="flex-1 truncate text-xs text-white">{p.title}</span>
+                              <span className="text-[11px] font-bold text-stone-400">₹{Number(p.price)}</span>
+                              {slideProductSlug === p.slug && <CheckCircle2 className="h-4 w-4 text-primary-400" />}
+                            </button>
+                          ))}
+                      </div>
+                      <p className="text-[10px] text-stone-500">
+                        {isBanner
+                          ? 'The banner shows a card with this product’s photo, price and a Customize button.'
+                          : 'The slide’s buttons open this product.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {slideLinkType === 'custom' && (
+                    <input
+                      type="text"
+                      value={slideLink}
+                      onChange={(e) => setSlideLink(e.target.value)}
+                      placeholder="e.g. /shop?featured=1 or /pages/offers"
+                      className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white font-mono"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-300 mb-1">Second Button Text (optional)</label>
                   <input
                     type="text"
-                    value={slideLink}
-                    onChange={(e) => setSlideLink(e.target.value)}
-                    placeholder="e.g. /shop?category=fridge-magnet or /shop"
+                    value={slideSecondaryText}
+                    onChange={(e) => setSlideSecondaryText(e.target.value)}
+                    placeholder="e.g. Explore Catalog"
+                    className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-stone-300 mb-1">Second Button Link</label>
+                  <input
+                    type="text"
+                    value={slideSecondaryLink}
+                    onChange={(e) => setSlideSecondaryLink(e.target.value)}
+                    placeholder="/shop"
                     className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white font-mono"
                   />
                 </div>
+
+                {isBanner && (
+                  <div className="sm:col-span-2 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="block font-bold text-stone-300 mb-1">Text Position</label>
+                      <select
+                        value={slideTextAlign}
+                        onChange={(e) => setSlideTextAlign(e.target.value as 'left' | 'center' | 'right')}
+                        className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white"
+                      >
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-stone-300 mb-1">Text Color</label>
+                      <select
+                        value={slideTextColor}
+                        onChange={(e) => setSlideTextColor(e.target.value as 'light' | 'dark')}
+                        className="w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-white"
+                      >
+                        <option value="light">White (for dark photos)</option>
+                        <option value="dark">Dark (for light photos)</option>
+                      </select>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 self-end">
+                      <input type="checkbox" checked={slideOverlay} onChange={(e) => setSlideOverlay(e.target.checked)} className="accent-primary-600" />
+                      <span className="text-stone-300">Shade behind text</span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Modal Action Buttons */}

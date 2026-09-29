@@ -3,6 +3,7 @@ import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import StorefrontShell from '@/components/StorefrontShell';
+import { pageMetadata } from '@/lib/seo';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -16,11 +17,14 @@ const jakarta = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Ebanzo | Premium Personalized Photo Gifting & Acrylic Keepsakes',
-  description: 'Custom acrylic fridge magnets, personalized keychains, car charms, and tabletop photo stands. Fused with Japanese UV print technology and delivered across India.',
-  keywords: 'personalized photo gifts, custom fridge magnets, acrylic keychains, car hanging charm, tabletop photo stand, ebanzo gifts india',
-};
+// Site-wide fallback; every storefront page sets its own title / description (lib/seo.ts)
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ebanzo.com'),
+    keywords: 'personalized photo gifts, acrylic photo frame, custom fridge magnets, acrylic keychains, car hanging, photo stand, ebanzo gifts india',
+    ...(await pageMetadata('/')),
+  };
+}
 
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -31,7 +35,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${outfit.variable} ${jakarta.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans bg-white text-stone-900 selection:bg-violet-600 selection:text-white">
+      {/* Browser extensions (e.g. Grammarly) add attributes to <body> before hydration */}
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col font-sans bg-white text-stone-900 selection:bg-violet-600 selection:text-white"
+      >
         <AuthProvider>
           <CartProvider>
             <StorefrontShell>{children}</StorefrontShell>

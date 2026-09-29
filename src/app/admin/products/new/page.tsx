@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
+import {
+  Search, 
   ArrowLeft, Package, Check, X, Sparkles, Star, 
   Tag, Layers, CheckCircle2, AlertCircle, Shapes, 
   Wand2, RefreshCw, Upload, Image as ImageIcon,
@@ -15,6 +16,8 @@ import {
   AdminProduct 
 } from '@/lib/admin-api';
 import { Category, ProductAttribute, uploadCustomPhoto } from '@/lib/api';
+import SeoFields from '@/components/admin/SeoFields';
+import { SEO_PAGES, productDescription } from '@/lib/seo-pages';
 import ProductVariationsEditor, {
   EditorVariation,
   toEditorVariations,
@@ -49,6 +52,8 @@ export default function AdminProductNewPage() {
   const [newShapeInput, setNewShapeInput] = useState('');
   const [shortDesc, setShortDesc] = useState('');
   const [description, setDescription] = useState('');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [newGalleryInput, setNewGalleryInput] = useState('');
@@ -157,6 +162,8 @@ export default function AdminProductNewPage() {
         shapes: shapesList,
         short_desc: shortDesc.trim(),
         description: description.trim(),
+        meta_title: metaTitle.trim(),
+        meta_description: metaDescription.trim(),
         image_url: imageUrl.trim(),
         gallery: galleryUrls,
         is_featured: isFeatured ? 1 : 0,
@@ -310,6 +317,25 @@ export default function AdminProductNewPage() {
                 className="w-full rounded-xl border border-stone-700 bg-stone-900 p-3 text-xs text-white placeholder-stone-600 focus:outline-none focus:border-primary-500"
               />
             </div>
+          </div>
+
+          {/* SEO Card */}
+          <div className="rounded-2xl border border-stone-800 bg-[#121318] p-5 space-y-4">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-stone-800 pb-3">
+              <Search className="h-4 w-4 text-sky-400" />
+              SEO — Google Title &amp; Description
+            </h3>
+            <SeoFields
+              title={metaTitle}
+              description={metaDescription}
+              onChange={(p) => {
+                if (p.title !== undefined) setMetaTitle(p.title);
+                if (p.description !== undefined) setMetaDescription(p.description);
+              }}
+              defaultTitle={`${title.trim() || 'Product name'} | ${SEO_PAGES[0].title}`}
+              defaultDescription={productDescription(title.trim() || 'Product name')}
+              urlPath={`/product/${slug || 'product-slug'}`}
+            />
           </div>
 
           {/* Pricing & Inventory Card */}

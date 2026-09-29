@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Star, Heart, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Star, Heart, ImagePlus } from 'lucide-react';
 import { Product, formatProductTitle } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import LiveCustomizerModal from './LiveCustomizerModal';
@@ -11,8 +11,11 @@ interface Props {
   product: Product;
 }
 
+const editButtonClass =
+  'absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-bold text-stone-900 shadow-sm backdrop-blur-sm transition-colors hover:bg-stone-900 hover:text-white';
+
 // Light product tile: borderless image, one badge, title, rating and price. The whole card
-// opens the product; the round button on the image opens the customizer directly.
+// opens the product; the Edit Photo button on the image opens the customizer.
 export default function ProductCard({ product }: Props) {
   const { wishlist, toggleWishlist } = useCart();
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
@@ -64,25 +67,26 @@ export default function ProductCard({ product }: Props) {
             <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
           </button>
 
-          {/* Quick action: customize now, or pick options first for variable products */}
+          {/* Edit Photo on every card, always visible: opens the photo customizer directly, or for
+              variable products the product page with the customizer auto-opened */}
           {hasVariations ? (
             <Link
-              href={href}
-              aria-label="Choose options"
-              className="absolute bottom-2 right-2 flex h-9 w-9 sm:w-auto items-center justify-center gap-1.5 rounded-full bg-white/95 sm:px-3 text-[11px] font-bold text-stone-900 shadow-sm backdrop-blur-sm transition-all hover:bg-stone-900 hover:text-white sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
+              href={`${href}?customize=1`}
+              aria-label="Edit photo"
+              className={editButtonClass}
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Options</span>
+              <ImagePlus className="h-3.5 w-3.5" />
+              <span>Edit Photo</span>
             </Link>
           ) : (
             <button
               type="button"
-              aria-label="Customize"
+              aria-label="Edit photo"
               onClick={() => setIsCustomizerOpen(true)}
-              className="absolute bottom-2 right-2 flex h-9 w-9 sm:w-auto items-center justify-center gap-1.5 rounded-full bg-white/95 sm:px-3 text-[11px] font-bold text-stone-900 shadow-sm backdrop-blur-sm transition-all hover:bg-stone-900 hover:text-white sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
+              className={editButtonClass}
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Customize</span>
+              <ImagePlus className="h-3.5 w-3.5" />
+              <span>Edit Photo</span>
             </button>
           )}
         </div>

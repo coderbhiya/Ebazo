@@ -1,9 +1,9 @@
 import CMSPageViewer from '@/components/CMSPageViewer';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata = {
-  title: 'About Us | Ebanzo - Bespoke Photo Keepsakes & Acrylic Gifting',
-  description: 'Discover the craftsmanship and story behind Ebanzo personalized acrylic photo gifting.',
-};
+export function generateMetadata() {
+  return pageMetadata('/about');
+}
 
 export default function AboutPage() {
   return <CMSPageViewer slug="about-us" fallbackTitle="About Us" />;

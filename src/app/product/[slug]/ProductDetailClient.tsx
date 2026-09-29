@@ -82,6 +82,18 @@ export default function ProductDetailClient({ product }: Props) {
   const isOutOfStock = hasVariations ? !selectedVariation || selectedVariation.stock <= 0 : product.stock <= 0;
   const needsSelection = hasVariations && !selectedVariation;
 
+  // "Edit Photo" on a product card links here with ?customize=1: open the customizer once the
+  // frames are verified (it needs them), with the preselected variation
+  const [autoCustomize, setAutoCustomize] = useState(false);
+  useEffect(() => {
+    setAutoCustomize(new URLSearchParams(window.location.search).get('customize') === '1');
+  }, []);
+  useEffect(() => {
+    if (!autoCustomize || !shapeFrames.ready) return;
+    setAutoCustomize(false);
+    if (!needsSelection && !isOutOfStock) setIsCustomizerOpen(true);
+  }, [autoCustomize, shapeFrames.ready]);
+
   const chooseOption = (attrName: string, option: string) => {
     const next = { ...selection, [attrName]: option };
     // If that combination doesn't exist, keep the new choice and move the other attributes to
